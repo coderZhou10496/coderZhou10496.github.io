@@ -1,0 +1,789 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="随着 iOS开发的深入，必须要了解一些底层的东西才能算上高级iOS开发工程师，比如 Runtime，Roonloop之类的。以前都是零碎的看过网上的文章，接下来就系统整理一下，也算是对记忆的加深。
+###简介Runtime 又叫运行时，是一套底层的 C 语言 API，其为 iOS 内部的核心之一，我们平时编写的 OC 代码，底层都是基于它来实现的。
+Objective-C 是一门动态语言，它会将一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Runtime学习之一：类与对象">
+<meta property="og:url" content="http://coderzhou.com/2017/03/08/Runtime学习之一：类与对象/index.html">
+<meta property="og:site_name" content="Sky的博客">
+<meta property="og:description" content="随着 iOS开发的深入，必须要了解一些底层的东西才能算上高级iOS开发工程师，比如 Runtime，Roonloop之类的。以前都是零碎的看过网上的文章，接下来就系统整理一下，也算是对记忆的加深。
+###简介Runtime 又叫运行时，是一套底层的 C 语言 API，其为 iOS 内部的核心之一，我们平时编写的 OC 代码，底层都是基于它来实现的。
+Objective-C 是一门动态语言，它会将一">
+<meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/ObjectAndClass.png">
+<meta property="og:updated_time" content="2017-03-26T14:06:56.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Runtime学习之一：类与对象">
+<meta name="twitter:description" content="随着 iOS开发的深入，必须要了解一些底层的东西才能算上高级iOS开发工程师，比如 Runtime，Roonloop之类的。以前都是零碎的看过网上的文章，接下来就系统整理一下，也算是对记忆的加深。
+###简介Runtime 又叫运行时，是一套底层的 C 语言 API，其为 iOS 内部的核心之一，我们平时编写的 OC 代码，底层都是基于它来实现的。
+Objective-C 是一门动态语言，它会将一">
+<meta name="twitter:image" content="http://ocauxqtbu.bkt.clouddn.com/ObjectAndClass.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2017/03/08/Runtime学习之一：类与对象/"/>
+
+  <title> Runtime学习之一：类与对象 | Sky的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Sky的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">一枚小小的程序猿，专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Runtime学习之一：类与对象
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-03-08T13:49:52+08:00" content="2017-03-08">
+              2017-03-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/iOS/" itemprop="url" rel="index">
+                    <span itemprop="name">iOS</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/03/08/Runtime学习之一：类与对象/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/08/Runtime学习之一：类与对象/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/03/08/Runtime学习之一：类与对象/" class="leancloud_visitors" data-flag-title="Runtime学习之一：类与对象">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>随着 iOS开发的深入，必须要了解一些底层的东西才能算上高级iOS开发工程师，比如 Runtime，Roonloop之类的。以前都是零碎的看过网上的文章，接下来就系统整理一下，也算是对记忆的加深。</p>
+<p>###简介<br>Runtime 又叫运行时，是一套底层的 C 语言 API，其为 iOS 内部的核心之一，我们平时编写的 OC 代码，底层都是基于它来实现的。</p>
+<p>Objective-C 是一门动态语言，它会将一些工作放在代码运行时才处理而并非编译时。也就是说，有很多类和成员变量在我们编译的时是不知道的，而在运行时，我们所编写的代码会转换成完整的确定的代码运行。</p>
+<p>开发者在编码过程中，可以给任意一个对象发送消息，在编译阶段只是确定了要向接收者发送这条消息，而接受者将要如何响应和处理这条消息，那就要看运行时来决定了。</p>
+<p>我们可以通过<a href="https://opensource.apple.com/tarballs/objc4/" target="_blank" rel="external">这里</a>来下载Runtime源码</p>
+<p>通过源码我们可以看到，NSObject定义为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface NSObject &lt;NSObject&gt; &#123;</div><div class="line">    Class isa  OBJC_ISA_AVAILABILITY;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>那么这个<code>Class</code>又是什么呢？我们点进去可以看一下，是一个objc_class类型的结构体：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">typedef struct objc_class *Class;</div><div class="line">typedef struct objc_object *id;</div></pre></td></tr></table></figure>
+<p>到这里我们来看一下，Runtime里面Class和Object基础数据结构，objc/runtime.h中objc_class结构体的定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">struct objc_class &#123;</div><div class="line">Class isa OBJC_ISA_AVAILABILITY; //isa指针指向Meta Class，因为Objc的类的本身也是一个Object，为了处理这个关系，runtime就创造了Meta Class，当给类发送[NSObject alloc]这样消息时，实际上是把这个消息发给了Class Object</div><div class="line"></div><div class="line">#if !__OBJC2__</div><div class="line">Class super_class OBJC2_UNAVAILABLE; // 父类</div><div class="line">const char *name OBJC2_UNAVAILABLE; // 类名</div><div class="line">long version OBJC2_UNAVAILABLE; // 类的版本信息，默认为0</div><div class="line">long info OBJC2_UNAVAILABLE; // 类信息，供运行期使用的一些位标识</div><div class="line">long instance_size OBJC2_UNAVAILABLE; // 该类的实例变量大小</div><div class="line">struct objc_ivar_list *ivars OBJC2_UNAVAILABLE; // 该类的成员变量链表</div><div class="line">struct objc_method_list **methodLists OBJC2_UNAVAILABLE; // 方法定义的链表</div><div class="line">struct objc_cache *cache OBJC2_UNAVAILABLE; // 方法缓存，对象接到一个消息会根据isa指针查找消息对象，这时会在methodLists中遍历，如果cache了，常用的方法调用时就能够提高调用的效率。</div><div class="line">struct objc_protocol_list *protocols OBJC2_UNAVAILABLE; // 协议链表</div><div class="line">#endif</div><div class="line"></div><div class="line">&#125; OBJC2_UNAVAILABLE;</div></pre></td></tr></table></figure>
+<p>此时注意，带有<code>OBJC2_UNAVAILABLE</code>标记的表示已经废弃，其实早在 2006 年，苹果在 WWDC 大会上就发布了 Objective-C 2.0，其中的改动包括 Max OS X 平台上的垃圾回收机制(现已废弃)，runtime 性能优化等。所以说，以上只是老版的objc_class结构体定义，现在我们看下新的结构体信息是怎么样的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">struct objc_class : objc_object &#123;</div><div class="line">    // Class ISA;</div><div class="line">    Class superclass; //父类的指针</div><div class="line">    cache_t cache;   // 方法缓存          // formerly cache pointer and vtable</div><div class="line">    class_data_bits_t bits;  //实例方法列表  // class_rw_t * plus custom rr/alloc flags</div><div class="line">&#125;</div><div class="line"></div><div class="line">struct objc_object &#123;</div><div class="line">private:</div><div class="line">    isa_t isa;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看出objc_class是继承自objc_object的，本质上,类是一个对象,这也就是我们通常会说的’类对象’的缘由.<br>其中objc_object有一个唯一的私有变量 - isa_t类型的isa指针，所以objc_class也有这个指针。</p>
+<p>当一个对象的实例方法被调用的时候，会通过isa找到相应的类，然后在该类的class_data_bits_t中去查找方法。class_data_bits_t是指向了类对象的数据区域。在该数据区域内查找相应方法的对应实现。</p>
+<p>但是在我们调用类方法的时候，类对象的isa里面是什么呢？这里为了和对象查找方法的机制一致，遂引入了元类(meta-class)的概念，即：</p>
+<p>对象的实例方法调用时，通过对象的 isa 在类中获取方法的实现。<br>类对象的类方法调用时，通过类的 isa 在元类中获取方法的实现</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/ObjectAndClass.png" alt="image"></p>
+<p>上图实线是super_class指针，虚线是isa指针，我们可以看出</p>
+<ol>
+<li>Root class (class)其实就是NSObject，NSObject是没有超类的，所以Root class(class)的superclass指向nil</li>
+<li>每个Class都有一个isa指针指向唯一的Meta class</li>
+<li>Root class(meta)的superclass指向Root class(class)，也就是NSObject，形成一个回路</li>
+<li>每个Meta class的isa指针都指向Root class (meta)</li>
+</ol>
+<h4 id="1-isa-t-isa"><a href="#1-isa-t-isa" class="headerlink" title="1.isa_t isa"></a>1.isa_t isa</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div></pre></td><td class="code"><pre><div class="line">union isa_t </div><div class="line">&#123;</div><div class="line">    isa_t() &#123; &#125;</div><div class="line">    isa_t(uintptr_t value) : bits(value) &#123; &#125;</div><div class="line"></div><div class="line">    Class cls;</div><div class="line">    uintptr_t bits;</div><div class="line"></div><div class="line"># if __arm64__</div><div class="line">#   define ISA_MASK        0x0000000ffffffff8ULL</div><div class="line">#   define ISA_MAGIC_MASK  0x000003f000000001ULL</div><div class="line">#   define ISA_MAGIC_VALUE 0x000001a000000001ULL</div><div class="line">    struct &#123;</div><div class="line">        uintptr_t nonpointer        : 1;</div><div class="line">        uintptr_t has_assoc         : 1;//对象含有或者曾经含有关联引用，没有关联引用的可以更快地释放内存</div><div class="line">        uintptr_t has_cxx_dtor      : 1;//析构器方法,如果没有析构器就会快速释放内存</div><div class="line">        uintptr_t shiftcls          : 33; // MACH_VM_MAX_ADDRESS 0x1000000000</div><div class="line">        uintptr_t magic             : 6;//用于调试器判断当前对象是真的对象还是没有初始化的空间</div><div class="line">        uintptr_t weakly_referenced : 1;//对象被指向或者曾经指向一个 ARC 的弱变量，没有弱引用的对象可以更快释放</div><div class="line">        uintptr_t deallocating      : 1;//对象正在释放内存</div><div class="line">        uintptr_t has_sidetable_rc  : 1;//对象的引用计数太大了，存不下</div><div class="line">        uintptr_t extra_rc          : 19;//对象的引用计数超过 1，会存在这个这个里面</div><div class="line">#       define RC_ONE   (1ULL&lt;&lt;45)</div><div class="line">#       define RC_HALF  (1ULL&lt;&lt;18)</div><div class="line">    &#125;;</div><div class="line"></div><div class="line"># elif __x86_64__</div><div class="line">#   define ISA_MASK        0x00007ffffffffff8ULL</div><div class="line">#   define ISA_MAGIC_MASK  0x001f800000000001ULL</div><div class="line">#   define ISA_MAGIC_VALUE 0x001d800000000001ULL</div><div class="line">    struct &#123;</div><div class="line">        uintptr_t nonpointer        : 1;</div><div class="line">        uintptr_t has_assoc         : 1;</div><div class="line">        uintptr_t has_cxx_dtor      : 1;</div><div class="line">        uintptr_t shiftcls          : 44; // MACH_VM_MAX_ADDRESS 0x7fffffe00000</div><div class="line">        uintptr_t magic             : 6;</div><div class="line">        uintptr_t weakly_referenced : 1;</div><div class="line">        uintptr_t deallocating      : 1;</div><div class="line">        uintptr_t has_sidetable_rc  : 1;</div><div class="line">        uintptr_t extra_rc          : 8;</div><div class="line">#       define RC_ONE   (1ULL&lt;&lt;56)</div><div class="line">#       define RC_HALF  (1ULL&lt;&lt;7)</div><div class="line">    &#125;;</div><div class="line"></div><div class="line"># else</div><div class="line">#   error unknown architecture for packed isa</div><div class="line"># endif</div><div class="line"></div><div class="line">// SUPPORT_PACKED_ISA</div><div class="line">#endif</div><div class="line"></div><div class="line"></div><div class="line">#if SUPPORT_INDEXED_ISA</div><div class="line"></div><div class="line"># if  __ARM_ARCH_7K__ &gt;= 2</div><div class="line"></div><div class="line">#   define ISA_INDEX_IS_NPI      1</div><div class="line">#   define ISA_INDEX_MASK        0x0001FFFC</div><div class="line">#   define ISA_INDEX_SHIFT       2</div><div class="line">#   define ISA_INDEX_BITS        15</div><div class="line">#   define ISA_INDEX_COUNT       (1 &lt;&lt; ISA_INDEX_BITS)</div><div class="line">#   define ISA_INDEX_MAGIC_MASK  0x001E0001</div><div class="line">#   define ISA_INDEX_MAGIC_VALUE 0x001C0001</div><div class="line">    struct &#123;</div><div class="line">        uintptr_t nonpointer        : 1;</div><div class="line">        uintptr_t has_assoc         : 1;</div><div class="line">        uintptr_t indexcls          : 15;</div><div class="line">        uintptr_t magic             : 4;</div><div class="line">        uintptr_t has_cxx_dtor      : 1;</div><div class="line">        uintptr_t weakly_referenced : 1;</div><div class="line">        uintptr_t deallocating      : 1;</div><div class="line">        uintptr_t has_sidetable_rc  : 1;</div><div class="line">        uintptr_t extra_rc          : 7;</div><div class="line">#       define RC_ONE   (1ULL&lt;&lt;25)</div><div class="line">#       define RC_HALF  (1ULL&lt;&lt;6)</div><div class="line">    &#125;;</div><div class="line"></div><div class="line"># else</div><div class="line">#   error unknown architecture for indexed isa</div><div class="line"># endif</div><div class="line"></div><div class="line">// SUPPORT_INDEXED_ISA</div><div class="line">#endif</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>看到isa指针是一个联合体，它在在 <strong>x86_64</strong> 上的实现 和 在<strong>arm64</strong> 的设备可能有些差别，不过这些字段都是存在的</p>
+<p>其中</p>
+<p>SUPPORT_INDEXED_ISA,文档注释Define SUPPORT_INDEXED_ISA=1 on platforms that store the class in the isa  field as an index into a class table.,也就是当该属性为真,则把该类存储在isa中,作为全局class表的索引();</p>
+<p>nonpointer为1,表示使用优化的isa指针,包含了引用计数,析构状态等.</p>
+<p>has_assoc,是否包含关联对象,如果没有,会更快的释放内存;</p>
+<p>has_cxx_dtor,是否包含析构函数,如果没有,会更快的释放内存;</p>
+<p>shiftcls,类的指针;</p>
+<p>magic,固定值,用于判断是否完成初始化;</p>
+<p>weakly_referenced,对象是否指向一个弱引用对象,没有弱引用对象可以更快的被释放;</p>
+<p>deallocating,对象是否正在销毁;</p>
+<p>has_sidetable_rc,是否有sidetable(散列表),如果为真,则引用计数存储在该散列表中;</p>
+<p>extra_rc,存储引用计数,比真实的引用计数少1.</p>
+<h4 id="2-cache-t的具体实现"><a href="#2-cache-t的具体实现" class="headerlink" title="2.cache_t的具体实现"></a>2.cache_t的具体实现</h4><p>Cache的作用主要是为了优化方法调用的性能。如果每发送一个消息都需要去方法表中去查找，当方法很多的时候，查找是很耗力的，并且当 存在继承关系的时候，一个方法的查找链可能会很长。那么对使用过的方法进行缓存，便于第二次查找。我们看下源码实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">struct cache_t &#123;</div><div class="line">    struct bucket_t *_buckets;</div><div class="line">    mask_t _mask;</div><div class="line">    mask_t _occupied;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>而bucket_t 结构体，mask_t分别是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">struct bucket_t &#123;</div><div class="line">private:</div><div class="line">    cache_key_t _key;</div><div class="line">    IMP _imp;</div><div class="line"> &#125;</div><div class="line"> </div><div class="line"> typedef uint32_t mask_t</div><div class="line"> typedef uintptr_t cache_key_t</div></pre></td></tr></table></figure>
+<p>_buckets是一个散列表，用来方法缓存，bucket_t的结构体中存储了一个IMP，MP是一个函数指针，指向了一个方法的具体实现。</p>
+<p>mask表示缓存bucket的总数。</p>
+<p>occupied表明目前实际占用的缓存bucket的个数。</p>
+<h4 id="3-class-data-bits-t-bits"><a href="#3-class-data-bits-t-bits" class="headerlink" title="3.class_data_bits_t bits"></a>3.class_data_bits_t bits</h4><p>bits 就是存储类的方法、属性、遵循的协议等信息的地方</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">struct class_data_bits_t &#123;</div><div class="line">    // Values are the FAST_ flags above.</div><div class="line">    uintptr_t bits;</div><div class="line"> &#125;</div></pre></td></tr></table></figure>
+<p>由此可以看出ObjC 中 class_data_bits_t 的结构体，其中只含有一个 64 位的 bits 用于存储与类有关的信息，而在在 objc_class 结构体中的注释写到 class_data_bits_t 相当于 class_rw_t 指针加上 rr/alloc 的标志，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">struct objc_class : objc_object &#123;</div><div class="line">    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags</div><div class="line"> &#125;</div></pre></td></tr></table></figure>
+<p>那么这个class_rw_t又是什么呢？源码里面也为我们提供了方法返回该类型的指针：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">class_rw_t* data() &#123;</div><div class="line">        return (class_rw_t *)(bits &amp; FAST_DATA_MASK);</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<p>ObjC 类中的属性、方法还有遵循的协议等信息都保存在 class_rw_t 中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">struct class_rw_t &#123;</div><div class="line">    uint32_t flags;</div><div class="line">    uint32_t version;</div><div class="line"></div><div class="line">    const class_ro_t *ro;</div><div class="line"></div><div class="line">    method_array_t methods;</div><div class="line">    property_array_t properties;</div><div class="line">    protocol_array_t protocols;</div><div class="line"></div><div class="line">    Class firstSubclass;</div><div class="line">    Class nextSiblingClass;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>其中还有一个指向常量的指针 ro，其中存储了当前类在编译期就已经确定的属性、方法以及遵循的协议。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">struct class_ro_t &#123;</div><div class="line">    uint32_t flags;</div><div class="line">    uint32_t instanceStart;</div><div class="line">    uint32_t instanceSize;</div><div class="line">    uint32_t reserved;</div><div class="line"></div><div class="line">    const uint8_t * ivarLayout;</div><div class="line"></div><div class="line">    const char * name;</div><div class="line">    method_list_t * baseMethodList;</div><div class="line">    protocol_list_t * baseProtocols;</div><div class="line">    const ivar_list_t * ivars;</div><div class="line"></div><div class="line">    const uint8_t * weakIvarLayout;</div><div class="line">    property_list_t *baseProperties;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>在编译期间类的结构中的 class_data_bits_t <em>data 指向的是一个 class_ro_t </em> 指针。</p>
+<p>总之就是，class_rw_t<em> data,存储该类方法属性协议等相关内容的指针,该结构体包含一个const class_ro_t </em>ro只读属性ro,ro中存储类在编译阶段就存在的方法属性协议等,因此当在运行时向类添加方法,那么改变的是class_rw_t类型的rw中的方法列表,而不是class_ro_t类型的ro的列表(rw即读写,ro即只读).<br>关于更详细的ObjC 中方法的结构，大家可以看<a href="http://www.jianshu.com/p/d7a60fc7b0a1" target="_blank" rel="external">这篇文章</a></p>
+<p>这篇文章只是介绍了Runtime中的类与对象，接下来还会介绍Runtime对于消息是怎么处理的。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/22/iOS事件的传递与响应/" rel="next" title="iOS事件的传递与响应">
+                <i class="fa fa-chevron-left"></i> iOS事件的传递与响应
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/03/08/Runtime学习之一：类与对象/"
+           data-title="Runtime学习之一：类与对象" data-url="http://coderzhou.com/2017/03/08/Runtime学习之一：类与对象/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">6</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-isa-t-isa"><span class="nav-number">1.</span> <span class="nav-text">1.isa_t isa</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-cache-t的具体实现"><span class="nav-number">2.</span> <span class="nav-text">2.cache_t的具体实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-class-data-bits-t-bits"><span class="nav-number">3.</span> <span class="nav-text">3.class_data_bits_t bits</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>
