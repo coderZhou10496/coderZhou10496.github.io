@@ -225,8 +225,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/03/27/Runtime学习之二：消息传递与转发/" itemprop="url">
-                  Runtime学习之二：消息传递与转发
+                <a class="post-title-link" href="/2017/03/27/Runtime学习之二：消息的传递与转发/" itemprop="url">
+                  Runtime学习之二：消息的传递与转发
                 </a>
               
             
@@ -250,8 +250,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2017/03/27/Runtime学习之二：消息传递与转发/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/27/Runtime学习之二：消息传递与转发/" itemprop="commentsCount"></span>
+                <a href="/2017/03/27/Runtime学习之二：消息的传递与转发/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/27/Runtime学习之二：消息的传递与转发/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -261,7 +261,7 @@
 
           
           
-             <span id="/2017/03/27/Runtime学习之二：消息传递与转发/" class="leancloud_visitors" data-flag-title="Runtime学习之二：消息传递与转发">
+             <span id="/2017/03/27/Runtime学习之二：消息的传递与转发/" class="leancloud_visitors" data-flag-title="Runtime学习之二：消息的传递与转发">
                &nbsp; | &nbsp;
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -316,16 +316,14 @@
 <p>runtimeLock 本质上是对提供的线程读写锁 pthread_rwlock_t 的一层封装，所以这里就是加一个读写锁，保证线程安全。</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">if (cache) &#123;</div><div class="line">    imp = cache_getImp(cls, sel);</div><div class="line">    if (imp) return imp;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p>如果使用缓存（cache 参数为 YES），那就调用 cache_getImp 方法从缓存查找 IMP。cache_getImp 是用汇编语言写的，因为 _class_lookupMethodAndLoadCache3 调用 lookUpImpOrForward 时 cache 参数为 NO，这步直接略过。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">if (!cls-&gt;isRealized()) &#123;  </div><div class="line">    rwlock_writer_t lock(runtimeLock);</div><div class="line">    realizeClass(cls);</div><div class="line">&#125;</div><div class="line"></div><div class="line">if (initialize  &amp;&amp;  !cls-&gt;isInitialized()) &#123;  </div><div class="line">    _class_initialize (_class_getNonMetaClass(cls, inst));</div><div class="line">&#125;</div><div class="line">```    </div><div class="line"></div><div class="line">这里对判断类是否载入了运行时以及是否进行了初始化，如果没有的话，会进行载入运行时操作和初始化操作。</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">if (!cls-&gt;isRealized()) &#123;  </div><div class="line">    rwlock_writer_t lock(runtimeLock);</div><div class="line">    realizeClass(cls);</div><div class="line">&#125;</div><div class="line">if (initialize  &amp;&amp;  !cls-&gt;isInitialized()) &#123;  </div><div class="line">    _class_initialize (_class_getNonMetaClass(cls, inst));</div><div class="line">&#125;</div><div class="line">```    </div><div class="line"></div><div class="line">这里对判断类是否载入了运行时以及是否进行了初始化，如果没有的话，会进行载入运行时操作和初始化操作。</div></pre></td></tr></table></figure>
 <pre><code>runtimeLock.read();
-</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">这里加了一个读锁。因为在运行时中会动态的添加方法（有 category 加入），为了保证线程安全，所以要加锁</div></pre></td></tr></table></figure>
+</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">这里加了一个读锁。因为在运行时中会动态的添加方法（有 category 加入），为了保证线程安全，所以要加锁。</div></pre></td></tr></table></figure>
 <pre><code>// Try this class&apos;s cache.
-
 imp = cache_getImp(cls, sel);
 if (imp) goto done;
-</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">再次尝试从缓存中查找，因为加锁前可能已经有别的地方将方法的缓存加入了，如果缓存中还是没有的话，继续下面的过程。</div></pre></td></tr></table></figure>
+</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">再次尝试从缓存中查找，因为加锁前可能已经有别的地方将方法的缓存加入了，如果缓存中还是没有的话，继续下面的过程。</div></pre></td></tr></table></figure>
 <pre><code>// Try this class&apos;s method lists.
-
 meth = getMethodNoSuper_nolock(cls, sel);
 if (meth) {
     log_and_fill_cache(cls, meth-&gt;imp, sel, inst, cls);
@@ -334,7 +332,6 @@ if (meth) {
 }
 </code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">首先使用 getMethodNoSuper_nolock(cls, sel) 在类里查找方法，如果找到了，调用 log_and_fill_cache 函数填充缓存并结束。</div></pre></td></tr></table></figure>
 <pre><code>// Try superclass caches and method lists.
-
 curClass = cls;
 while ((curClass = curClass-&gt;superclass)) {
     // Superclass cache.
@@ -352,7 +349,6 @@ while ((curClass = curClass-&gt;superclass)) {
             break;
         }
     }
-
     // Superclass method list.
     meth = getMethodNoSuper_nolock(curClass, sel);
     if (meth) {
@@ -361,9 +357,8 @@ while ((curClass = curClass-&gt;superclass)) {
         goto done;
     }
 }
-</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">往父类查找，首先现在父类的缓存中查找，找到后需要检查是否是 _objc_msgForward_impcache，这是运行时中消息转发的实现，需要先无视父类中消息转发的缓存，因为子类里可能实现了动态方法解析。找到了就把这个方法cache回自己的缓存中，然后结束。如果父类的缓存中没有，就调用 getMethodNoSuper_nolock 在父类中查找方法，找到了照样把这个方法cache回自己的缓存中，然后结束。</div></pre></td></tr></table></figure>
+</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">往父类查找，首先现在父类的缓存中查找，找到后需要检查是否是 _objc_msgForward_impcache，这是运行时中消息转发的实现，需要先无视父类中消息转发的缓存，因为子类里可能实现了动态方法解析。找到了就把这个方法cache回自己的缓存中，然后结束。如果父类的缓存中没有，就调用 getMethodNoSuper_nolock 在父类中查找方法，找到了照样把这个方法cache回自己的缓存中，然后结束。</div></pre></td></tr></table></figure>
 <pre><code>// No implementation found. Try method resolver once.
-
 if (resolver  &amp;&amp;  !triedResolver) {
     runtimeLock.unlockRead();
     _class_resolveMethod(cls, sel, inst);
@@ -375,42 +370,20 @@ if (resolver  &amp;&amp;  !triedResolver) {
 </code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">如果最后都没有找到实现，那就进入动态方法解析过程。首先先判断是否开启了动态方法解析并且还没有尝试过，之后将锁打开，为什么将锁打开，是因为开发者可能会在这里动态增加方法实现，所以不需要缓存结果。调用 _class_resolveMethod，这个函数会根据 cls 是否是元类来调用我们熟知的 +resolveInstanceMethod: 或者 +resolveClassMethod。之后便重新走一遍消息发送过程（goto retry）。</div></pre></td></tr></table></figure>
 <pre><code>// No implementation found, and method resolver didn&apos;t help. 
 // Use forwarding.
-
 imp = (IMP)_objc_msgForward_impcache;
 cache_fill(cls, sel, imp, inst);
 </code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">在缓存、当前类、父类以及 resolveInstanceMethod: 都没有解决实现查找的问题时，Objective-C 还为我们提供了最后一次翻身的机会，进行方法转发。</div><div class="line"></div><div class="line">###  二 、消息的转发</div><div class="line"></div><div class="line">消息的转发，就是在查找 IMP 失败后执行一系列转发流程的过程，如果不作转发处理，则会打日志和抛出异常。</div><div class="line"></div><div class="line">_objc_msgForward_impcache 方法也是用汇编实现的，我们可以在[objc-msg-x86_64.s ](https://github.com/opensource-apple/objc4/blob/master/runtime/Messengers.subproj/objc-msg-x86_64.s)看下它的内部实现：</div></pre></td></tr></table></figure>
-<p>// _objc_msgForward_impcache is the function pointer actually stored in<br>//   method caches.</p>
-<pre><code>STATIC_ENTRY    __objc_msgForward_impcache
-// Method cache version
-
-// THIS IS NOT A CALLABLE C FUNCTION
-// Out-of-band condition register is NE for stret, EQ otherwise.
-
-MESSENGER_START
-nop
-MESSENGER_END_SLOW
-
-jne    __objc_msgForward_stret
-jmp    __objc_msgForward
-
-END_ENTRY    __objc_msgForward_impcache
-</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
-<p>_objc_msgForward and _objc_msgForward_stret are the externally-callable<br> functions returned by things like method_getImplementation().<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">我们通过注释也可以看到 _objc_msgForward_impcache 只是个内部的函数指针，只存储于上面提到的类的方法缓存中，需要被转化为 _objc_msgForward 和 _objc_msgForward_stret 才能被外部调用。_objc_msgForward_impcache 会根据返回值类型转化为 _objc_msgForward 或__objc_msgForward_stret。带 stret 后缀的函数依旧是返回值为结构体的版本。</div><div class="line"></div><div class="line">_objc_msgForward 和 _objc_msgForward_stret 会分别调用 _objc_forward_handler 和 _objc_forward_handler_stret，如下：</div></pre></td></tr></table></figure></p>
+<p>// _objc_msgForward_impcache is the function pointer actually stored in<br>//   method caches.<br>    STATIC_ENTRY    <strong>objc_msgForward_impcache<br>    // Method cache version<br>    // THIS IS NOT A CALLABLE C FUNCTION<br>    // Out-of-band condition register is NE for stret, EQ otherwise.<br>    MESSENGER_START<br>    nop<br>    MESSENGER_END_SLOW<br>    jne    </strong>objc_msgForward_stret<br>    jmp    <strong>objc_msgForward<br>    END_ENTRY    </strong>objc_msgForward_impcache<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure></p>
+<p>_objc_msgForward and _objc_msgForward_stret are the externally-callable<br> functions returned by things like method_getImplementation().<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">我们通过注释也可以看到 _objc_msgForward_impcache 只是个内部的函数指针，只存储于上面提到的类的方法缓存中，需要被转化为 _objc_msgForward 和 _objc_msgForward_stret 才能被外部调用。_objc_msgForward_impcache 会根据返回值类型转化为 _objc_msgForward 或__objc_msgForward_stret。带 stret 后缀的函数依旧是返回值为结构体的版本。</div><div class="line"></div><div class="line">_objc_msgForward 和 _objc_msgForward_stret 会分别调用 _objc_forward_handler 和 _objc_forward_handler_stret，如下：</div></pre></td></tr></table></figure></p>
 <pre><code>ENTRY    __objc_msgForward
 // Non-stret version
-
 movq    __objc_forward_handler(%rip), %r11
 jmp    *%r11
-
 END_ENTRY    __objc_msgForward
-
-
 ENTRY    __objc_msgForward_stret
 // Struct-return version
-
 movq    __objc_forward_stret_handler(%rip), %r11
 jmp    *%r11
-
 END_ENTRY    __objc_msgForward_stret
 </code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">接下来我们分析一下 _objc_forward_handler，继续看源码，在 objc-runtime.mm 文件中我们看到了：</div></pre></td></tr></table></figure>
 <p>void <em>_objc_forward_handler = (void</em>)objc_defaultForwardHandler;</p>
