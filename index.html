@@ -225,6 +225,171 @@
             
               
                 
+                <a class="post-title-link" href="/2017/05/20/OC与JS的交互/" itemprop="url">
+                  OC与JS的交互
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-05-20T22:00:41+08:00" content="2017-05-20">
+              2017-05-20
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/05/20/OC与JS的交互/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/20/OC与JS的交互/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/05/20/OC与JS的交互/" class="leancloud_visitors" data-flag-title="OC与JS的交互">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>在开发的过程中，免不了要与webView打交道，比如一个活动页面，或者一个比较复杂的界面，H5同事写好之后直接给安卓、iOS开发的人调用就行了，但这里就需要用到 Objective-C 与 JavaScript 交互的知识了，OC调用JS的方法，JS调用OC的方法，以及它们之间传值等。闲暇之余花了一些时间整理了一下，大致就一下三种方式来进行交互，相关代码已传至<a href="https://github.com/coderZhou10496/Objective-CInteractiveWithJS" target="_blank" rel="external">Github</a></p>
+<h3 id="一、通过UIWebView代理方法，拦截URL的方法"><a href="#一、通过UIWebView代理方法，拦截URL的方法" class="headerlink" title="一、通过UIWebView代理方法，拦截URL的方法"></a>一、通过UIWebView代理方法，拦截URL的方法</h3><h4 id="OC调用JS"><a href="#OC调用JS" class="headerlink" title="OC调用JS"></a>OC调用JS</h4><p>OC调用js是通过这个方法，来实现的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">-(nullable NSString *)stringByEvaluatingJavaScriptFromString:(NSString *)script;</div></pre></td></tr></table></figure>
+<p>在 Demo 中，我们先通过这个方法注入js方法，当然这个js方法可以直接先写在html文件中，就不用注入了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">-(void)webViewDidFinishLoad:(UIWebView *)webView</div><div class="line">&#123;</div><div class="line">    [self.webView stringByEvaluatingJavaScriptFromString:[self loadJsFile:@&quot;test&quot;]];</div><div class="line"></div><div class="line">&#125;</div><div class="line">- (NSString *)loadJsFile:(NSString*)fileName</div><div class="line">&#123;</div><div class="line">    NSString *path = [[NSBundle mainBundle] pathForResource:fileName ofType:@&quot;js&quot;];</div><div class="line">    NSString *jsScript = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];</div><div class="line">    return jsScript;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>然后在点击方法里调用这个js方法就行了，返回值即为js方法的返回值</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">- (IBAction)click:(id)sender</div><div class="line">&#123;</div><div class="line">    //     OC 调用 JS</div><div class="line">    //    在OC中通过代码调用JS中名为calculate的方法,并传入两个参数</div><div class="line">    NSString *string =  [self.webView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@&quot;calculate(&apos;%d&apos;,&apos;%d&apos;)&quot;,1,2]];</div><div class="line">    </div><div class="line">    NSLog(@&quot;resultString: %@&quot;,string);</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="JS调用OC"><a href="#JS调用OC" class="headerlink" title="JS调用OC"></a>JS调用OC</h4><p>JS调用OC通过这个方法来实现</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-(BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:</div><div class="line">(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType</div></pre></td></tr></table></figure>
+<p>在这个方法里，我们能拿到urlString，通过这个url进行判断来调用原生OC方法，例如，在js中，方法为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">&lt;script&gt;</div><div class="line">    function scanClick() &#123;</div><div class="line">        window.location.href = &quot;MyAction://scanClickOperation&quot;</div><div class="line">        </div><div class="line">    &#125;</div><div class="line">    function shakeClick() &#123;</div><div class="line">    window.location.href = &quot;MyAction://shakeClickOperation&quot;</div><div class="line">    </div><div class="line">    &#125;</div><div class="line">&lt;/script&gt;</div></pre></td></tr></table></figure>
+<p>我们通过UIWebView的代理方法，进行拦截判断</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">//    通过 scheme 来拦截是否是自定义的 URL</div><div class="line">    if([[request.URL scheme] isEqualToString:@&quot;myaction&quot;])</div><div class="line">    &#123;</div><div class="line">        if([[request.URL host] isEqualToString:@&quot;scanClickOperation&quot;])</div><div class="line">        &#123;</div><div class="line">            NSLog(@&quot;扫一扫&quot;);</div><div class="line">        &#125;</div><div class="line">        if([[request.URL host] isEqualToString:@&quot;shakeClickOperation&quot;])</div><div class="line">        &#123;</div><div class="line">            NSLog(@&quot;摇一摇&quot;);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    return YES;</div><div class="line">    </div><div class="line">////    也可以通过这种方式来</div><div class="line">//    if([request.URL.absoluteString rangeOfString:@&quot;scanClickOperation&quot;].location != NSNotFound)</div><div class="line">//    &#123;</div><div class="line">//        NSLog(@&quot;扫一扫&quot;);</div><div class="line">//    &#125;</div></pre></td></tr></table></figure>
+<p>GitHub上demo给的很详细，大家可以下载下来看下。</p>
+<h3 id="二、WebViewJavascriptBridge"><a href="#二、WebViewJavascriptBridge" class="headerlink" title="二、WebViewJavascriptBridge"></a>二、WebViewJavascriptBridge</h3><p><a href="https://github.com/marcuswestin/WebViewJavascriptBridge" target="_blank" rel="external">WebViewJavascriptBridge</a>是一个用于OC与JS交互第三方库，在GitHub上有8000多的star，它的原理也是通过shouldStartLoadWithRequest 这个代理方法，对url进行判断来实现的。接下来我们看看这个库怎么用。</p>
+<p>初始化UIWebView的时候，不要为UIWebView设置代理为self，这个库的内部会自动为其设置代理，假如我们还是想在本类调用UIWebView的代理方法，WebViewJavascriptBridge有专门的API来调用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//这里不要为UIWebView设置代理 UIWebView的代理被赋值给WebViewJavascriptBridge。</div><div class="line">UIWebView *webView = [[UIWebView alloc] initWithFrame:self.view.bounds];</div><div class="line">[webView loadHTMLString:appHtml baseURL:url];</div><div class="line">[self.view addSubview:webView];</div><div class="line">self.webView = webView;</div><div class="line"></div><div class="line">WebViewJavascriptBridge *webViewBridge = [WebViewJavascriptBridge bridgeForWebView:webView];</div><div class="line">//将UIWebView的代理，从webViewBridge中再传递出来。意思是假如你要在控制器中实现UIWebView的代理方法时，添加下面这样代码</div><div class="line">[webViewBridge setWebViewDelegate:self];</div><div class="line">self.webViewBridge = webViewBridge;</div></pre></td></tr></table></figure>
+<p>任何有关方法的调用，必须经过下面的js注册，即</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">/*这段代码是固定的，必须要放到js中*/</div><div class="line">function setupWebViewJavascriptBridge(callback) &#123;</div><div class="line">  if (window.WebViewJavascriptBridge) &#123; return callback(WebViewJavascriptBridge); &#125;</div><div class="line">  if (window.WVJBCallbacks) &#123; return window.WVJBCallbacks.push(callback); &#125;</div><div class="line">  window.WVJBCallbacks = [callback];</div><div class="line">  var WVJBIframe = document.createElement(&apos;iframe&apos;);</div><div class="line">  WVJBIframe.style.display = &apos;none&apos;;</div><div class="line">  WVJBIframe.src = &apos;wvjbscheme://__BRIDGE_LOADED__&apos;;</div><div class="line">  document.documentElement.appendChild(WVJBIframe);</div><div class="line">  setTimeout(function() &#123; document.documentElement.removeChild(WVJBIframe) &#125;, 0)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>比较蛋疼，也是特别要注意的地方。</p>
+<h4 id="OC调用JS-1"><a href="#OC调用JS-1" class="headerlink" title="OC调用JS"></a>OC调用JS</h4><p>OC调用JS的方法比较简单，调用分几种：</p>
+<p>1.直接调用，无参数无回调</p>
+<p>2.有参数，有回调</p>
+<p>3.有多个参数，有回调</p>
+<p>Demo中都给出了这几种的例子</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">// 不传参数，直接调用，无回调</div><div class="line">[self.webViewBridge callHandler:@&quot;myOperation&quot;];</div><div class="line"></div><div class="line">// 传参数 有回调</div><div class="line">[self.webViewBridge callHandler:@&quot;factorial&quot; data:@(4) responseCallback:^(id responseData) &#123;</div><div class="line">    NSLog(@&quot;OC端得到responseData: %@&quot;,responseData);</div><div class="line">&#125;];</div><div class="line"></div><div class="line">// 传参数 有回调</div><div class="line">NSArray *array = @[@(1),@(2)];</div><div class="line">[self.webViewBridge callHandler:@&quot;calculate&quot; data:array responseCallback:^(id responseData) &#123;</div><div class="line">    NSLog(@&quot;OC端得到responseData: %@&quot;,responseData);</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>因为这三个方法，在html文件中，js自己调用 setupWebViewJavascriptBridge 这个方法了，所有不需要在OC代码中进行register，注意这里的方法名，一定要和js中的方法名相同。</p>
+<h4 id="JS调用OC-1"><a href="#JS调用OC-1" class="headerlink" title="JS调用OC"></a>JS调用OC</h4><p>使用 WebViewJavascriptBridge 这个类的 <code>registerHandler</code> 方法进行注册，在block里我们可以使用JS传给OC的参数，及再回调给JS</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">[self.webViewBridge registerHandler:@&quot;changeColor&quot; handler:^(id data, WVJBResponseCallback responseCallback) &#123;</div><div class="line">    </div><div class="line">    //data就是JS传给OC的参数</div><div class="line">    NSDictionary *tempDic = data;</div><div class="line">    CGFloat r = [[tempDic objectForKey:@&quot;r&quot;] floatValue];</div><div class="line">    CGFloat g = [[tempDic objectForKey:@&quot;g&quot;] floatValue];</div><div class="line">    CGFloat b = [[tempDic objectForKey:@&quot;b&quot;] floatValue];</div><div class="line">    CGFloat a = [[tempDic objectForKey:@&quot;a&quot;] floatValue];</div><div class="line">    </div><div class="line">    self.webView.scrollView.backgroundColor = [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:a];</div><div class="line">&#125;];</div><div class="line"></div><div class="line"></div><div class="line">[self.webViewBridge registerHandler:@&quot;JS调用OC&quot; handler:^(id data, WVJBResponseCallback responseCallback) &#123;</div><div class="line">    </div><div class="line">    //data就是JS传给OC的参数</div><div class="line">    NSLog(@&quot;data from JS ：%@&quot;, data);</div><div class="line">    </div><div class="line">    if (responseCallback) &#123;</div><div class="line">        </div><div class="line">        //OC反馈给JS</div><div class="line">        responseCallback(@&quot;我是OC传给JS的数据&quot;);</div><div class="line">        </div><div class="line">    &#125;</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<h3 id="二、JavaScriptCore"><a href="#二、JavaScriptCore" class="headerlink" title="二、JavaScriptCore"></a>二、JavaScriptCore</h3><p>JavaScriptCore框架是iOS 7中加入的，该框架让Objective-C和JavaScript代码直接的交互变得更加的简单方便。在项目中引入JavaScriptCore后，链到头文件中，除了大段的Copyright注释可以看到里面只要引入了5个文件，每个文件里都定义跟文件名对应的类。总的来说，JavaScriptCore的使用相对简单，也很方便</p>
+<p>JSContext是JavaScript的运行环境，通过jSCore执行的JS代码都得通过JSContext来执行，相当于HTML中&lt; JavaScript &gt;之间的内容。</p>
+<p>JSValue是JSContext的返回结果，他对数据类型进行了封装，并且为JS和OC的数据类型之间的转换提供了方法。</p>
+<p>JSManagedValue是JSValue的封装，用它可以解决JS和原生代码之间循环引用的问题。</p>
+<p>JSVirtualMachine 管理JS运行时和管理JS暴露的OC对象的内存,是JSContext的容器，可以包含若干个JSContext，在一个进程中，你可以有多个JSVirtualMachine，里面包含着若干个JSContext，而JSContext中又有若干个JSValue</p>
+<p>JSExport是一个协议，通过实现它可以把一个OC对象暴漏给JS，这样JS就可以调用这个对象暴露的方法。</p>
+<p>JavaScriptCore对于JS与OC的交互有两种方式，一种是使用JSExport，另一种是使用block形式。下面只介绍了使用block来进行交互</p>
+<h4 id="JS调用OC-2"><a href="#JS调用OC-2" class="headerlink" title="JS调用OC"></a>JS调用OC</h4><p>先在 <code>viewDidLoad</code> 方法里创建 JSContext 对象，注入JS方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">// 初始化 JSContext 对象</div><div class="line">self.OCCallJScontext = [[JSContext alloc] init];</div><div class="line"></div><div class="line">NSString *jsPath = [[NSBundle mainBundle] pathForResource:@&quot;test&quot; ofType:@&quot;js&quot;];</div><div class="line">NSString *jsScript = [NSString stringWithContentsOfFile:jsPath encoding:NSUTF8StringEncoding error:nil];</div><div class="line"> [self.OCCallJScontext evaluateScript:jsScript];</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">- (IBAction)click:(id)sender</div><div class="line">&#123;</div><div class="line">    JSValue *function = [self.OCCallJScontext objectForKeyedSubscript:@&quot;calculate&quot;];</div><div class="line">    </div><div class="line">    // 3 + 4</div><div class="line">    JSValue *result = [function callWithArguments:@[@(3),@(4)]];</div><div class="line">    </div><div class="line">    NSLog(@&quot;通过js方法计算两数之和为 %@&quot;,[result toString]);</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>calculate</code> 方法是和H5同事约定好的，调用方法的字符串。</p>
+<h4 id="OC调用JS-2"><a href="#OC调用JS-2" class="headerlink" title="OC调用JS"></a>OC调用JS</h4><p>首先在<code>webViewDidFinishLoad</code> 方法里获取到 JSContext 对象</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">self.JSCallOCcontext = [webView valueForKeyPath:@&quot;documentView.webView.mainFrame.javaScriptContext&quot;];</div></pre></td></tr></table></figure>
+<p>假如我们在js中，对button绑定了一个方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;button onclick=&quot;methodA()&quot;&gt;不传参数&lt;/button&gt;</div></pre></td></tr></table></figure>
+<p>当我们点击网页中的这个button的时候，让它调用原生的方法，可以这样写</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">self.JSCallOCcontext[@&quot;methodA&quot;] =</div><div class="line">^()</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;直接调用不传参数&quot;);</div><div class="line">    // 可以写自己的方法</div><div class="line">    // [self customMethod];</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>这个方法是不传参数给OC的，假如JS要传参数给OC，可以这样写</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;button onclick=&quot;methodB(&apos;我是参数&apos;)&quot;&gt;传参数&lt;/button&gt;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">self.JSCallOCcontext[@&quot;methodB&quot;] =</div><div class="line">^(NSString *str)</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;得到JS的参数为 %@&quot;,str);</div><div class="line">    // 可以写自己的方法</div><div class="line">    // [self customMethod];</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>在block里写对应的原生方法，假如要把结果回调给JS，可以这样写<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;button onclick=&quot;methodD(&apos;我是参数&apos;)&quot;&gt;有返回&lt;/button&gt;</div></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">    // 并将值返回给js</div><div class="line">__weak ViewController *weakSelf = self;</div><div class="line">self.JSCallOCcontext[@&quot;methodD&quot;] =</div><div class="line">^(NSString *str)</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;得到JS的参数为 %@&quot;,str);</div><div class="line">    str = [NSString stringWithFormat:@&quot;呵呵哒%@&quot;,str];</div><div class="line">    JSValue *callback = weakSelf.JSCallOCcontext[@&quot;callback&quot;];</div><div class="line">    [callback callWithArguments:@[str]];</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>这里要注意循环引用问题。</p>
+<p>三种交互方法对比：</p>
+<p>如果仅仅是简单的交互，直接在UIWebVIew的代理方法，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-(BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:</div><div class="line">(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType</div></pre></td></tr></table></figure>
+<p>实现功能即可。如果交互比较复杂，建议使用JavaScriptCore，WebViewJavascriptBridge这个库用起来比较麻烦，我当时也是看了一段时间才看明白，JavaScriptCore用起来还是很方便的</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2017/04/29/自定义转场动画/" itemprop="url">
                   自定义转场动画
                 </a>
@@ -1703,7 +1868,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">9</span>
+              <span class="site-state-item-count">10</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
