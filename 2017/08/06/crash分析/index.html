@@ -97,7 +97,7 @@
 <meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/crash_dsym.png">
 <meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/crash_result.png">
 <meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/crash_wenjian.png">
-<meta property="og:updated_time" content="2017-08-06T02:20:45.000Z">
+<meta property="og:updated_time" content="2017-08-06T02:49:08.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Crash分析">
 <meta name="twitter:description" content="一、 Crash文件的获取在开发的过程中，难免会遇到应用crash的发生，了解为何会发生crash，对我们以后写代码的稳定有非常大的作用。应用的每一次闪退，手机会自动的把这次闪退记录下来，以文件的形式保存到手机上。Crash文件的获取分两种情况，一种是在测试阶段，一种是线上APP。
@@ -300,15 +300,14 @@
 <h4 id="线上APP"><a href="#线上APP" class="headerlink" title="线上APP"></a>线上APP</h4><p>APP上线以后，crash文件的获取在Xcode - Windwo - Organizer - Crashes<br>这里面列出了每个APP版本的闪退信息，通过Show in Finder也能获取到crash文件。但注意的是，这个Xcode，必须是上传时用的Xcode。</p>
 <p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_list.png" alt="image"></p>
 <p>之前有人说，通过开发者中心，iTunes Connect，也能获取到，我去看了下，好像没有这个选项了。另外，假如苹果在审核的时候，发生闪退，被打了回来，审核团队也会提供一份crash文件，我们可以直接用来分析。</p>
-<h3 id="二、-Crash文件的分析"><a href="#二、-Crash文件的分析" class="headerlink" title="二、 Crash文件的分析"></a>二、 Crash文件的分析</h3><p>####准备工作<br>文件分析需要四样东西，crash文件，symbolicatecrash分析工具，闪退APP的打包后的.APP文件，以及此包对应的.dSYM符号表文件。我们在桌面上新建一个文件夹，命名为crash文件分析，一样一样准备就行了。</p>
+<h3 id="二、-Crash文件的分析"><a href="#二、-Crash文件的分析" class="headerlink" title="二、 Crash文件的分析"></a>二、 Crash文件的分析</h3><h4 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h4><p>文件分析需要四样东西，crash文件，symbolicatecrash分析工具，闪退APP的打包后的.APP文件，以及此包对应的.dSYM符号表文件。我们在桌面上新建一个文件夹，命名为crash文件分析，一样一样准备就行了。</p>
 <p>获取crash文件我们上面已经了解到了，symbolicatecrash分析工具是Xcode自带的，我们只需要拿来用就行，打开终端，输入以下命令</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">find /Applications/Xcode.app -name symbolicatecrash -type f</div></pre></td></tr></table></figure>
 <p>过几秒钟，symbolicatecrash分析工具的路径就会显示出来，我们进入这个路径中，将symbolicatecrash分析工具拷贝到桌面上刚才创建的crash文件分析的文件夹中</p>
 <p>.APP及.dSYM符号表文件的获取：</p>
 <p>在Organizer - Archives里显示的有打过的包，找到crash发生对应的那个版本包，然后 Show in Finder,显示包内容,.dSYM文件在dSYMs文件夹下，.APP文件在Products - Applications文件夹下。分别拷贝他们到桌面的crash文件分析的文件夹中</p>
 <p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_dsym.png" alt="image"></p>
-<p>####.dSYM符号表是什么？</p>
-<p>符号表就是指在Xcode项目编译后，在编译生成的二进制文件.app的同级目录下生成的同名的.dSYM文件。.dSYM文件其实是一个目录，在子目录中包含了一个16进制的保存函数地址映射信息的中转文件，所有Debug的symbols都在这个文件中(包括文件名、函数名、行号等)，所以也称之为调试符号信息文件。一般地，Xcode项目每次编译后，都会生成一个新的.dSYM文件。因此，App的每一个发布版本，都需要备份一个对应的.dSYM文件，以便后续调试定位问题。</p>
+<h4 id="dSYM符号表是什么？"><a href="#dSYM符号表是什么？" class="headerlink" title=".dSYM符号表是什么？"></a>.dSYM符号表是什么？</h4><p>符号表就是指在Xcode项目编译后，在编译生成的二进制文件.app的同级目录下生成的同名的.dSYM文件。.dSYM文件其实是一个目录，在子目录中包含了一个16进制的保存函数地址映射信息的中转文件，所有Debug的symbols都在这个文件中(包括文件名、函数名、行号等)，所以也称之为调试符号信息文件。一般地，Xcode项目每次编译后，都会生成一个新的.dSYM文件。因此，App的每一个发布版本，都需要备份一个对应的.dSYM文件，以便后续调试定位问题。</p>
 <p>符号表有什么用<br>符号表的作用是把崩溃中的函数地址解析为函数名等信息。如果开发者能够获取到崩溃的函数地址信息，就可以利用符号表分析出具体的出错位置。<br> 在Xcode开发调试App时，一旦遇到崩溃问题，开发者可以直接使用Xcode的调试器定位分析。<br> 但如果App发布上线，开发者不可能进行调试，只能通过分析系统记录的崩溃日志来定位问题，在这份崩溃日志文件中，会指出App出错的函数内存地址，而这些函数地址是可以在.dSYM文件中找到具体的文件名、函数名和行号信息的，这正是符号表的重要作用所在，也是为什么要进行符号表进行管理，并纪录这是哪个版本的符号表。</p>
 <h4 id="开始分析"><a href="#开始分析" class="headerlink" title="开始分析"></a>开始分析</h4><p>打开终端，cd到刚才创建的文件夹下，输入命令</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./symbolicatecrash /Users/用户名/Desktop/crash文件/watchnail-2017-08-03-143201.crash /Users/用户名/Desktop/crash文件/watchnail.app.dSYM &gt; result.crash</div></pre></td></tr></table></figure>
@@ -353,31 +352,25 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[NSObject(NSObject) doesNotRecognizeSelector:]</div></pre></td></tr></table></figure>
 <p>意思是没有实现相应的方法。但是美中不足的是，只提示了是什么原因导致的crash，并没有提示是哪个类不识别这个方法，难道需要其他的方法，来定位crash时所在的类？</p>
 <p>现在也有很多的第三方服务来专门收集crash，如友盟，Bugly等等，不只是crash，还有对卡顿，性能的检测等等。</p>
-<h3 id="三、-常见的crash类型"><a href="#三、-常见的crash类型" class="headerlink" title="三、 常见的crash类型"></a>三、 常见的crash类型</h3><p>####unrecognized selector crash</p>
-<p>这个原因通常是一个对象调用了一个不属于它方法的方法导致的。</p>
+<h3 id="三、-常见的crash类型"><a href="#三、-常见的crash类型" class="headerlink" title="三、 常见的crash类型"></a>三、 常见的crash类型</h3><h4 id="unrecognized-selector-crash"><a href="#unrecognized-selector-crash" class="headerlink" title="unrecognized selector crash"></a>unrecognized selector crash</h4><p>这个原因通常是一个对象调用了一个不属于它方法的方法导致的。</p>
 <p>预防：使用Runtime的消息转发来实现</p>
 <ol>
 <li>动态创建一个桩类</li>
 <li>动态为桩类添加对应的Selector，用一个通用的返回0的函数来实现该SEL的IMP</li>
 <li>将消息直接转发到这个桩类对象上。</li>
 </ol>
-<p>####KVO crash</p>
-<ol>
+<h4 id="KVO-crash"><a href="#KVO-crash" class="headerlink" title="KVO crash"></a>KVO crash</h4><ol>
 <li>KVO的被观察者dealloc时仍然注册着KVO导致的crash</li>
 <li>添加KVO重复添加观察者或重复移除观察者（KVO注册观察者与移除观察者不匹配）导致的crash</li>
 </ol>
 <p>预防：被观察对象持有一个KVO的delegate，所有和KVO相关的操作均通过delegate来进行管理，delegate通过建立一张map来维护KVO整个关系。</p>
 <p>这里极力推荐一个facebook开源的关于管理KVO的开源库<a href="https://github.com/facebook/KVOController" target="_blank" rel="external">KVOController</a></p>
-<p>####NSNotification crash</p>
-<p>当一个对象添加了notification之后，如果dealloc的时候，仍然持有notification，就会出现NSNotification类型的crash。<br>所幸的是，苹果在iOS9之后专门针对于这种情况做了处理，所以在iOS9之后，即使开发者没有移除observer，Notification crash也不会再产生了。<br>不过针对于iOS9之前的用户，我们还是有必要做一下NSNotification Crash的防护的。</p>
+<h4 id="NSNotification-crash"><a href="#NSNotification-crash" class="headerlink" title="NSNotification crash"></a>NSNotification crash</h4><p>当一个对象添加了notification之后，如果dealloc的时候，仍然持有notification，就会出现NSNotification类型的crash。<br>所幸的是，苹果在iOS9之后专门针对于这种情况做了处理，所以在iOS9之后，即使开发者没有移除observer，Notification crash也不会再产生了。<br>不过针对于iOS9之前的用户，我们还是有必要做一下NSNotification Crash的防护的。</p>
 <h4 id="NSTimer-crash"><a href="#NSTimer-crash" class="headerlink" title="NSTimer crash"></a>NSTimer crash</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:</div></pre></td></tr></table></figure>
 <p>使用这个方法时，NSTimer会强引用target实例，所以需要在合适的时机invalidate定时器，否则就会由于定时器timer强引用target的关系导致target不能被释放，造成内存泄露，甚至在定时任务触发时导致crash。</p>
-<p>####Container crash </p>
-<p>Container 类型的crash 指的是容器类的crash，常见的有NSArray／NSMutableArray／NSDictionary／NSMutableDictionary／NSCache的crash。 一些常见的越界、插入nil等错误操作均会导致此类crash发生</p>
-<p>####野指针crash </p>
-<p>在App的所有Crash中，访问野指针导致的Crash占了很大一部分</p>
-<p>####非主线程刷UI类型crash </p>
-<p>非主线程刷UI将会导致app运行crash，所以一定要在主线程中进行UI操作</p>
+<h4 id="Container-crash"><a href="#Container-crash" class="headerlink" title="Container crash"></a>Container crash</h4><p>Container 类型的crash 指的是容器类的crash，常见的有NSArray／NSMutableArray／NSDictionary／NSMutableDictionary／NSCache的crash。 一些常见的越界、插入nil等错误操作均会导致此类crash发生</p>
+<h4 id="野指针crash"><a href="#野指针crash" class="headerlink" title="野指针crash"></a>野指针crash</h4><p>在App的所有Crash中，访问野指针导致的Crash占了很大一部分</p>
+<h4 id="非主线程刷UI类型crash"><a href="#非主线程刷UI类型crash" class="headerlink" title="非主线程刷UI类型crash"></a>非主线程刷UI类型crash</h4><p>非主线程刷UI将会导致app运行crash，所以一定要在主线程中进行UI操作</p>
 
       
     </div>
@@ -531,7 +524,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#一、-Crash文件的获取"><span class="nav-number">1.</span> <span class="nav-text">一、 Crash文件的获取</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#测试阶段"><span class="nav-number">1.1.</span> <span class="nav-text">测试阶段</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#线上APP"><span class="nav-number">1.2.</span> <span class="nav-text">线上APP</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#二、-Crash文件的分析"><span class="nav-number">2.</span> <span class="nav-text">二、 Crash文件的分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#开始分析"><span class="nav-number">2.1.</span> <span class="nav-text">开始分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#三、-常见的crash类型"><span class="nav-number">3.</span> <span class="nav-text">三、 常见的crash类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#NSTimer-crash"><span class="nav-number">3.1.</span> <span class="nav-text">NSTimer crash</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#一、-Crash文件的获取"><span class="nav-number">1.</span> <span class="nav-text">一、 Crash文件的获取</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#测试阶段"><span class="nav-number">1.1.</span> <span class="nav-text">测试阶段</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#线上APP"><span class="nav-number">1.2.</span> <span class="nav-text">线上APP</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#二、-Crash文件的分析"><span class="nav-number">2.</span> <span class="nav-text">二、 Crash文件的分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#准备工作"><span class="nav-number">2.1.</span> <span class="nav-text">准备工作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#dSYM符号表是什么？"><span class="nav-number">2.2.</span> <span class="nav-text">.dSYM符号表是什么？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#开始分析"><span class="nav-number">2.3.</span> <span class="nav-text">开始分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#三、-常见的crash类型"><span class="nav-number">3.</span> <span class="nav-text">三、 常见的crash类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#unrecognized-selector-crash"><span class="nav-number">3.1.</span> <span class="nav-text">unrecognized selector crash</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#KVO-crash"><span class="nav-number">3.2.</span> <span class="nav-text">KVO crash</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NSNotification-crash"><span class="nav-number">3.3.</span> <span class="nav-text">NSNotification crash</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NSTimer-crash"><span class="nav-number">3.4.</span> <span class="nav-text">NSTimer crash</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Container-crash"><span class="nav-number">3.5.</span> <span class="nav-text">Container crash</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#野指针crash"><span class="nav-number">3.6.</span> <span class="nav-text">野指针crash</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#非主线程刷UI类型crash"><span class="nav-number">3.7.</span> <span class="nav-text">非主线程刷UI类型crash</span></a></li></ol></li></ol></div>
             
           </div>
         </section>
