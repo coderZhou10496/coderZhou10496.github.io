@@ -84,19 +84,12 @@
 
 
 
-<meta name="description" content="一、KVO简介KVO是 Objective-C 对观察者设计模式的一种实现，它提供一种机制，指定一个被观察对象，当这个对象指定的属性发生改变时，对象会获得通知，并作出相应处理。比如在下拉刷新控件中，观察scrollView的contentOffset属性，当contentOffset发生改变时，让刷新控件显示不同的状态。
-二、实现原理KVO的实现依赖于 Objective-C 强大的 Runtim">
-<meta property="og:type" content="article">
-<meta property="og:title" content="KVO原理实现">
-<meta property="og:url" content="http://coderzhou.com/2016/08/16/KVO原理/index.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sky的博客">
+<meta property="og:url" content="http://coderzhou.com/page/2/index.html">
 <meta property="og:site_name" content="Sky的博客">
-<meta property="og:description" content="一、KVO简介KVO是 Objective-C 对观察者设计模式的一种实现，它提供一种机制，指定一个被观察对象，当这个对象指定的属性发生改变时，对象会获得通知，并作出相应处理。比如在下拉刷新控件中，观察scrollView的contentOffset属性，当contentOffset发生改变时，让刷新控件显示不同的状态。
-二、实现原理KVO的实现依赖于 Objective-C 强大的 Runtim">
-<meta property="og:updated_time" content="2016-08-23T09:34:17.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="KVO原理实现">
-<meta name="twitter:description" content="一、KVO简介KVO是 Objective-C 对观察者设计模式的一种实现，它提供一种机制，指定一个被观察对象，当这个对象指定的属性发生改变时，对象会获得通知，并作出相应处理。比如在下拉刷新控件中，观察scrollView的contentOffset属性，当contentOffset发生改变时，让刷新控件显示不同的状态。
-二、实现原理KVO的实现依赖于 Objective-C 强大的 Runtim">
+<meta name="twitter:title" content="Sky的博客">
 
 
 
@@ -117,9 +110,9 @@
 
 
 
-  <link rel="canonical" href="http://coderzhou.com/2016/08/16/KVO原理/"/>
+  <link rel="canonical" href="http://coderzhou.com/page/2/"/>
 
-  <title> KVO原理实现 | Sky的博客 </title>
+  <title> Sky的博客 </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -140,7 +133,9 @@
     
   
 
-  <div class="container one-collumn sidebar-position-left page-post-detail ">
+  <div class="container one-collumn sidebar-position-left 
+   page-home 
+ ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -207,9 +202,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-
-  <div id="posts" class="posts-expand">
+  <section id="posts" class="posts-expand">
     
+      
 
   
   
@@ -229,7 +224,10 @@
             
             
               
-                KVO原理实现
+                
+                <a class="post-title-link" href="/2016/08/12/新的博客，新的开始/" itemprop="url">
+                  新的博客，新的开始
+                </a>
               
             
           </h1>
@@ -241,8 +239,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-16T16:57:11+08:00" content="2016-08-16">
-              2016-08-16
+            <time itemprop="dateCreated" datetime="2016-08-12T13:57:19+08:00" content="2016-08-12">
+              2016-08-12
             </time>
           </span>
 
@@ -252,8 +250,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/08/16/KVO原理/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/16/KVO原理/" itemprop="commentsCount"></span>
+                <a href="/2016/08/12/新的博客，新的开始/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/12/新的博客，新的开始/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -263,7 +261,7 @@
 
           
           
-             <span id="/2016/08/16/KVO原理/" class="leancloud_visitors" data-flag-title="KVO原理实现">
+             <span id="/2016/08/12/新的博客，新的开始/" class="leancloud_visitors" data-flag-title="新的博客，新的开始">
                &nbsp; | &nbsp;
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -285,42 +283,21 @@
       
 
       
-        <h3 id="一、KVO简介"><a href="#一、KVO简介" class="headerlink" title="一、KVO简介"></a>一、KVO简介</h3><p>KVO是 Objective-C 对观察者设计模式的一种实现，它提供一种机制，指定一个被观察对象，当这个对象指定的属性发生改变时，对象会获得通知，并作出相应处理。比如在下拉刷新控件中，观察scrollView的contentOffset属性，当contentOffset发生改变时，让刷新控件显示不同的状态。</p>
-<h3 id="二、实现原理"><a href="#二、实现原理" class="headerlink" title="二、实现原理"></a>二、实现原理</h3><p>KVO的实现依赖于 Objective-C 强大的 Runtime，下面我们来探索一下：<br>新建一个Person类，监听它的name属性，并在监听前与监听后分别输出相关信息：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">self.per = [[Person alloc] init];</div><div class="line">NSLogDescription(self.per);</div><div class="line">[self.per addObserver:self forKeyPath:@&quot;name&quot; options:NSKeyValueObservingOptionNew context:nil];</div><div class="line">NSLogDescription(self.per);</div></pre></td></tr></table></figure>
-<p>NSLogDescription方法为工具方法，输出类的名字，isa，实现的方法</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">static void NSLogDescription(id obj)</div><div class="line">&#123;</div><div class="line">    NSString *str = [NSString stringWithFormat:</div><div class="line">                     @&quot;%@\n\tclassName: %s\n\tclsss isa: %s\n\timplements methods &lt;%@&gt;&quot;,</div><div class="line">                     obj,</div><div class="line">                     class_getName([obj class]),</div><div class="line">                     class_getName(object_getClass(obj)),</div><div class="line">                     [ClassMethodNames(object_getClass(obj)) componentsJoinedByString:@&quot;, &quot;]];</div><div class="line">    printf(&quot;%s\n&quot;, [str UTF8String]);</div><div class="line">&#125;</div><div class="line">static NSArray *ClassMethodNames(Class c)</div><div class="line">&#123;</div><div class="line">    NSMutableArray *array = [NSMutableArray array];</div><div class="line">    </div><div class="line">    unsigned int methodCount = 0;</div><div class="line">    Method *methodList = class_copyMethodList(c, &amp;methodCount);</div><div class="line">    unsigned int i;</div><div class="line">    for(i = 0; i &lt; methodCount; i++)</div><div class="line">        [array addObject: NSStringFromSelector(method_getName(methodList[i]))];</div><div class="line">    free(methodList);</div><div class="line">    return array;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>我们在控制台可以看见监听前和监听后的输出</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">&lt;Person: 0x7fcc4b61a240&gt;</div><div class="line">	className: Person</div><div class="line">	clsss isa: Person</div><div class="line">	implements methods &lt;.cxx_destruct, name, setName:&gt;</div><div class="line">&lt;Person: 0x7fcc4b61a240&gt;</div><div class="line">	className: Person</div><div class="line">	clsss isa: NSKVONotifying_Person</div><div class="line">	implements methods &lt;setName:, class, dealloc, _isKVOA&gt;</div></pre></td></tr></table></figure>
-<p>我们看到，类的名字还是 Person，但是 isa 指针却是 NSKVONotifying<em>Person，并且实现的方法也变了<br>其实这是 Runtime 搞的鬼，当某个类的对象第一次被观察时，系统就会在运行期动态的创建该类的子类，修改这个类的 isa 指向这个新的子类，类名字就是这种 NSKVONotifying</em>(类名)。由于在 iOS 中函数调用都转化为 isa 查表形式，所以这次查的是新的子类的表，也就是说对类的函数调用被子类给拦截了。这种修改类的 isa 技术被称为 isa-swizzling 技术。由此可见，新的 NSKVONotifying_Person 类都做了一下事情：</p>
-<p> 2.1、重写 class 方法</p>
-<p>当你打印</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[self.per class];</div></pre></td></tr></table></figure>
-<p>不管在监听前，还是监听后，都返回 Person,这应该是苹果故意而为之，他们不希望这个机制暴露在外面，故重写了 class 方法</p>
-<p> 2.2、重写 set 方法</p>
-<p>新类会重写监听属性的 set 方法，如果该类还有其他属性，但是没有监听，不会重写其他属性的 set 方法，并且在重写的 set 方法内增加了另外两个方法的调用：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-(void)willChangeValueForKey:(NSString *)key</div><div class="line">-(void)didChangeValueForKey:(NSString *)key</div></pre></td></tr></table></figure>
-<p>其中，didChangeValueForKey:方法负责调用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">- (void)observeValueForKeyPath:(NSString *)keyPath</div><div class="line">                      ofObject:(id)object</div><div class="line">                        change:(NSDictionary *)change</div><div class="line">                       context:(void *)context</div></pre></td></tr></table></figure>
-<p>这就是 KVO 实现的原理了。</p>
-<p>2.3、增加了 _isKVOA  dealloc 方法</p>
-<p>_isKVOA 用来标示该类是一个 KVO 机制声称的类。</p>
-<h3 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h3><p>KVO 是 Cocoa 提供的一个很强大的特性，但同时它也有很多坑需要我我们注意，比如比如添加完监听后，要在不需要的时候删除掉监听，否则就会造成意外崩溃。还有相对于 delegate , notification,KVO 要创建子类及重写方法，相对的占用更多的内存。对一个复杂和相关性很多的class，用 delegate 或 notification 的方式比较简洁</p>
+        
+          
+            <p>看到别人都有自己的技术博客，一时心血来潮，自己也建一个，由于对这方面一窍不通，查了好多资料，用了整整一天，才把这个博客建立起来。</p>
+<p>作为一个搞IT开发的，拥有属于自己的技术博客是必须的，这个博客算是对自己学习过程的记录吧，公司项目不忙的话，尽量多抽点时间学点技术写博客，写完之后你会对所写的技术理解更加深刻，记忆也就越深，总之，也督促自己一定要不断学习。</p>
 
+          
+        
       
     </div>
 
     <div>
       
-        
-
-      
     </div>
 
     <div>
-      
-        
-
       
     </div>
 
@@ -328,36 +305,23 @@
       
 
       
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2016/08/15/老生常谈NSString与NSMutableString/" rel="next" title="老生常谈NSString与NSMutableString">
-                <i class="fa fa-chevron-left"></i> 老生常谈NSString与NSMutableString
-              </a>
-            
-          </div>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/08/18/Objective-C Category/" rel="prev" title="Objective-C Category">
-                Objective-C Category <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
 
       
+      
+        <div class="post-eof"></div>
       
     </footer>
   </article>
 
 
+    
+  </section>
 
-    <div class="post-spread">
-      
-    </div>
-  </div>
+  
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+  </nav>
+
 
 
           </div>
@@ -365,14 +329,6 @@
 
 
           
-  <div class="comments" id="comments">
-    
-      <div class="ds-thread" data-thread-key="2016/08/16/KVO原理/"
-           data-title="KVO原理实现" data-url="http://coderzhou.com/2016/08/16/KVO原理/">
-      </div>
-    
-  </div>
-
 
         </div>
         
@@ -392,17 +348,8 @@
       
 
       
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
-            文章目录
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            站点概览
-          </li>
-        </ul>
-      
 
-      <section class="site-overview sidebar-panel ">
+      <section class="site-overview sidebar-panel  sidebar-panel-active ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
@@ -456,17 +403,6 @@
 
       </section>
 
-      
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-            
-              
-            
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#一、KVO简介"><span class="nav-number">1.</span> <span class="nav-text">一、KVO简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#二、实现原理"><span class="nav-number">2.</span> <span class="nav-text">二、实现原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#三、总结"><span class="nav-number">3.</span> <span class="nav-text">三、总结</span></a></li></ol></div>
-            
-          </div>
-        </section>
       
 
     </div>
@@ -570,10 +506,6 @@
 
 
   
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
-
-
 
   
 
