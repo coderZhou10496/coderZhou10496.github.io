@@ -225,6 +225,138 @@
             
               
                 
+                <a class="post-title-link" href="/2017/11/04/APP的启动/" itemprop="url">
+                  APP的启动
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-11-04T18:33:28+08:00" content="2017-11-04">
+              2017-11-04
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/11/04/APP的启动/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/04/APP的启动/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/11/04/APP的启动/" class="leancloud_visitors" data-flag-title="APP的启动">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>APP的启动是指从用户点击 APP 那一刻开始到用户看到第一个界面的整个过程</p>
+<h3 id="一、APP的启动过程"><a href="#一、APP的启动过程" class="headerlink" title="一、APP的启动过程"></a>一、APP的启动过程</h3><h4 id="1-启动过程"><a href="#1-启动过程" class="headerlink" title="1.启动过程"></a>1.启动过程</h4><p>简单的来说就是 App 进行编译、汇编、链接、代码签名以及启动执行等操作</p>
+<h5 id="1-1-解析Info-plist"><a href="#1-1-解析Info-plist" class="headerlink" title="1.1 解析Info.plist"></a>1.1 解析Info.plist</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1.加载相关信息，例如如闪屏</div><div class="line"></div><div class="line">2.沙箱建立、权限检查</div></pre></td></tr></table></figure>
+<h5 id="1-2-Mach-O加载"><a href="#1-2-Mach-O加载" class="headerlink" title="1.2 Mach-O加载"></a>1.2 Mach-O加载</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">1.如果是胖二进制文件，寻找合适当前CPU类别的部分</div><div class="line"></div><div class="line"> (由于需要支持不同CPU架构的iOS设备，所以我们编译打包出来的执行文件是一个Universal Binary格式文件，通用二进制文件，也称胖二进制文件)</div><div class="line"> </div><div class="line">2.加载所有依赖的Mach-O文件（递归调用Mach-O加载的方法）</div><div class="line"></div><div class="line">3.定位内部、外部指针引用，例如字符串、函数等</div><div class="line"></div><div class="line">4.执行声明为__attribute__((constructor))的C函数</div><div class="line"></div><div class="line">5.加载类扩展（Category）中的方法</div><div class="line"></div><div class="line">6.C++静态对象加载、调用ObjC的 +load 函数</div><div class="line"></div><div class="line">关于Mach-O文件的格式以及详细的加载过程，可看[这篇文章](http://www.jianshu.com/p/54d842db3f69)</div></pre></td></tr></table></figure>
+<h5 id="1-3-程序执行"><a href="#1-3-程序执行" class="headerlink" title="1.3 程序执行"></a>1.3 程序执行</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">1.main函数</div><div class="line"></div><div class="line">2.执行 UIApplicationMain 函数</div><div class="line"></div><div class="line">3.创建 UIApplication 对象</div><div class="line"></div><div class="line">4.创建UIApplicationDelegate对象</div><div class="line"></div><div class="line">5.读取配置文件info.plist，设置程序启动的一些属性</div><div class="line"></div><div class="line">6.创建应用程序的Main Runloop循环</div><div class="line"></div><div class="line">7.UIApplicationDelegate对象开始处理监听对象</div><div class="line"></div><div class="line">8.调用didFinishLaunchingWithOptions方法</div><div class="line"></div><div class="line">9.如果info.plist中配置了启动的storyBoard的文件名，加载storyboard文件，如果没有，创建UIWindow —&gt; rootViewController 显示</div></pre></td></tr></table></figure>
+<h3 id="二、启动时间的计算"><a href="#二、启动时间的计算" class="headerlink" title="二、启动时间的计算"></a>二、启动时间的计算</h3><h4 id="2-1-main-函数之前"><a href="#2-1-main-函数之前" class="headerlink" title="2.1 main()函数之前"></a>2.1 main()函数之前</h4><p>苹果已经给出了方法来帮我们计算这部分的启动时间：<br>在Xcode的菜单中选择<code>Project</code> → <code>Scheme→Edit Scheme</code>，然后找到 <code>Run</code> →  <code>Environment Variables</code>，添加name为 <code>DYLD_PRINT_STATISTICS</code> 为1的环境变量，然后运行APP，会在控制台有一个输出。例如，我在之前的一个项目中加入以上设置后：</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/blog_runTime.png" alt=""></p>
+<p>1.main()函数之前总共使用了401.01ms</p>
+<p>2.在401.01ms中，加载动态库用了112.08ms，指针重定位使用了161.83ms，ObjC类初始化使用了71.04ms，各种初始化使用了55.93ms。</p>
+<p>3.在初始化耗费的55.93ms中，用时最多的三个初始化是libSystem.B.dylib、libMainThreadChecker.dylib以及XiaoBanBattery(自己的项目名称)。</p>
+<h4 id="2-2-main-函数之后"><a href="#2-2-main-函数之后" class="headerlink" title="2.2 main()函数之后"></a>2.2 main()函数之后</h4><p>从main()函数开始至applicationWillFinishLaunching结束，再到完成数据的加载并展示相关信息给用户。</p>
+<p>我们可以自己在这个过程中插入代码，从而获得这段时间。比如在didFinishLaunchingWithOptions获取一下时间，再在第一个主界面viewDidAppear获取一下时间，算出时间差。</p>
+<h3 id="三、启动时间的优化"><a href="#三、启动时间的优化" class="headerlink" title="三、启动时间的优化"></a>三、启动时间的优化</h3><p>一个App完整的启动时间应该保证400ms之内,而若超过20s后还未完全启动App,那么App进程就会被系统杀死。那么如何来提升启动速度呢？</p>
+<h4 id="1-移除不需要用到的动态库"><a href="#1-移除不需要用到的动态库" class="headerlink" title="1. 移除不需要用到的动态库"></a>1. 移除不需要用到的动态库</h4><p>每个App都进行动态库加载,其中系统级别的动态库占据了绝大数,而针对系统级别的动态库都是经过系统高度优化的,不用担心时间的花费.所以我们应该关注于自己集成到App的那些动态库,有些库集成进来了，但是没在代码中用到，一样会需要时间来加载它。所以移除移除不需要用到的动态库是很有必要的。</p>
+<h4 id="2-移除不需要用到的类"><a href="#2-移除不需要用到的类" class="headerlink" title="2. 移除不需要用到的类"></a>2. 移除不需要用到的类</h4><p>日常代码的维护非常重要，如果一个业务去掉了，就应该在当时删掉相关的代码，否则的话无用的代码就会越来越多。日后，再去找这些无用的代码，应该没那么方便了。</p>
+<h4 id="3-合并功能类似的类和分类"><a href="#3-合并功能类似的类和分类" class="headerlink" title="3. 合并功能类似的类和分类"></a>3. 合并功能类似的类和分类</h4><p>这样做主要是为了加快程序的整个动态链接, 在进行动态库的重定位和绑定过程中减少指针修正的使用,加快程序机器码的生成。所以要合并一些在工程、架构上没有太大意义的类和分类。</p>
+<h4 id="4-使用initialize方法进行必要的初始化工作"><a href="#4-使用initialize方法进行必要的初始化工作" class="headerlink" title="4. 使用initialize方法进行必要的初始化工作"></a>4. 使用initialize方法进行必要的初始化工作</h4><p>如果不是非必须的，我们要用+initialize方法替换调用原先在OC的+load方法中执行初始代码工作,从而加快所有类文件的加载速度。</p>
+<h4 id="5-压缩资源图片"><a href="#5-压缩资源图片" class="headerlink" title="5. 压缩资源图片"></a>5. 压缩资源图片</h4><p>启动的时候加载图片，图片小了，IO操作量就小了，启动当然就会快了，但是还是要以图片的质量，清晰度为前提下。</p>
+<h4 id="6-优化rootViewController加载"><a href="#6-优化rootViewController加载" class="headerlink" title="6. 优化rootViewController加载"></a>6. 优化rootViewController加载</h4><p>在didFinishLaunchingWithOptions方法里，我们一般进行初始化第三方SDK、自己的一些工具类的初始化、然后再到第一个界面的渲染。其实这些东西也可以分开来做：</p>
+<p>1.最先配置的事件，比如日志，统计等可以在没有设置rootViewController前进行初始化。</p>
+<p>2.第三方SDK，比如推送，支付SDk，直播SDk的集成，可以在设置rootViewController后进行初始化，这样不会影响第一个视图的加载，毕竟人的视觉看到视图出现很快，就会觉得加载很快。</p>
+<p>3.工具类的初始化配置。比如集成了IQKeyboardManager,需要启动的时候进行全局设置，这个操作可以放在第一个界面的viewDidAppear，这里完全不会影响到启动时间。</p>
+<p>本文只是简单简述了APP的启动，比如点击APP图标后，动态库是如何链接到内存中的，代码的二进制文件是如何加载的等这些过程还需更深层次的探究。对于优化启动时间这个方面，我们只能做的就是写出更好的代码，优化项目。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2017/10/24/三次握手及四次挥手/" itemprop="url">
                   三次握手及四次挥手
                 </a>
@@ -1556,7 +1688,7 @@
 <p>当我点击 viewC 时，控制台输出为：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">2016-08-22 17:46:15.273 EventDemo[3268:357205] hitTest superView 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.274 EventDemo[3268:357205] pointInside superView = YES</div><div class="line">2016-08-22 17:46:15.274 EventDemo[3268:357205] hitTest viewB 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.274 EventDemo[3268:357205] pointInside viewB = YES</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewD 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] pointInside viewD = NO</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewD 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewC 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] pointInside viewC = YES</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewC 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.276 EventDemo[3268:357205] hitTest viewB 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.276 EventDemo[3268:357205] hitTest superView 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.279 EventDemo[3268:357205] 处理事件的view为:viewC</div></pre></td></tr></table></figure>
 <p>由控制台输出可以看出，的确是一层一层遍历子视图，最后找到处理视图 viewC。这里为什么没有遍历 viewA 呢，正如上面所说的，遍历顺序是从 superView 的最上层子视图，即 viewB 开始的。viewC 和 viewD 作为 viewB 的子视图，viewD 后添加到 viewB 上，先遍历 viewD 。</p>
-<h3 id="二、时间的响应"><a href="#二、时间的响应" class="headerlink" title="二、时间的响应"></a>二、时间的响应</h3><p>先看下官方给的图：</p>
+<h3 id="二、事件的响应"><a href="#二、事件的响应" class="headerlink" title="二、事件的响应"></a>二、事件的响应</h3><p>先看下官方给的图：</p>
 <p><img src="http://ocauxqtbu.bkt.clouddn.com/hitappleaggin.png" alt="image"></p>
 <ol>
 <li><p>事件顺着responder chain传递，如果一环不处理，则传递到下一环</p>
@@ -1758,136 +1890,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/08/16/KVO原理/" itemprop="url">
-                  KVO原理实现
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-16T16:57:11+08:00" content="2016-08-16">
-              2016-08-16
-            </time>
-          </span>
-
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2016/08/16/KVO原理/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/16/KVO原理/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/08/16/KVO原理/" class="leancloud_visitors" data-flag-title="KVO原理实现">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h3 id="一、KVO简介"><a href="#一、KVO简介" class="headerlink" title="一、KVO简介"></a>一、KVO简介</h3><p>KVO是 Objective-C 对观察者设计模式的一种实现，它提供一种机制，指定一个被观察对象，当这个对象指定的属性发生改变时，对象会获得通知，并作出相应处理。比如在下拉刷新控件中，观察scrollView的contentOffset属性，当contentOffset发生改变时，让刷新控件显示不同的状态。</p>
-<h3 id="二、实现原理"><a href="#二、实现原理" class="headerlink" title="二、实现原理"></a>二、实现原理</h3><p>KVO的实现依赖于 Objective-C 强大的 Runtime，下面我们来探索一下：<br>新建一个Person类，监听它的name属性，并在监听前与监听后分别输出相关信息：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">self.per = [[Person alloc] init];</div><div class="line">NSLogDescription(self.per);</div><div class="line">[self.per addObserver:self forKeyPath:@&quot;name&quot; options:NSKeyValueObservingOptionNew context:nil];</div><div class="line">NSLogDescription(self.per);</div></pre></td></tr></table></figure>
-<p>NSLogDescription方法为工具方法，输出类的名字，isa，实现的方法</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">static void NSLogDescription(id obj)</div><div class="line">&#123;</div><div class="line">    NSString *str = [NSString stringWithFormat:</div><div class="line">                     @&quot;%@\n\tclassName: %s\n\tclsss isa: %s\n\timplements methods &lt;%@&gt;&quot;,</div><div class="line">                     obj,</div><div class="line">                     class_getName([obj class]),</div><div class="line">                     class_getName(object_getClass(obj)),</div><div class="line">                     [ClassMethodNames(object_getClass(obj)) componentsJoinedByString:@&quot;, &quot;]];</div><div class="line">    printf(&quot;%s\n&quot;, [str UTF8String]);</div><div class="line">&#125;</div><div class="line">static NSArray *ClassMethodNames(Class c)</div><div class="line">&#123;</div><div class="line">    NSMutableArray *array = [NSMutableArray array];</div><div class="line">    </div><div class="line">    unsigned int methodCount = 0;</div><div class="line">    Method *methodList = class_copyMethodList(c, &amp;methodCount);</div><div class="line">    unsigned int i;</div><div class="line">    for(i = 0; i &lt; methodCount; i++)</div><div class="line">        [array addObject: NSStringFromSelector(method_getName(methodList[i]))];</div><div class="line">    free(methodList);</div><div class="line">    return array;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>我们在控制台可以看见监听前和监听后的输出</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">&lt;Person: 0x7fcc4b61a240&gt;</div><div class="line">	className: Person</div><div class="line">	clsss isa: Person</div><div class="line">	implements methods &lt;.cxx_destruct, name, setName:&gt;</div><div class="line">&lt;Person: 0x7fcc4b61a240&gt;</div><div class="line">	className: Person</div><div class="line">	clsss isa: NSKVONotifying_Person</div><div class="line">	implements methods &lt;setName:, class, dealloc, _isKVOA&gt;</div></pre></td></tr></table></figure>
-<p>我们看到，类的名字还是 Person，但是 isa 指针却是 NSKVONotifying<em>Person，并且实现的方法也变了<br>其实这是 Runtime 搞的鬼，当某个类的对象第一次被观察时，系统就会在运行期动态的创建该类的子类，修改这个类的 isa 指向这个新的子类，类名字就是这种 NSKVONotifying</em>(类名)。由于在 iOS 中函数调用都转化为 isa 查表形式，所以这次查的是新的子类的表，也就是说对类的函数调用被子类给拦截了。这种修改类的 isa 技术被称为 isa-swizzling 技术。由此可见，新的 NSKVONotifying_Person 类都做了一下事情：</p>
-<p> 2.1、重写 class 方法</p>
-<p>当你打印</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[self.per class];</div></pre></td></tr></table></figure>
-<p>不管在监听前，还是监听后，都返回 Person,这应该是苹果故意而为之，他们不希望这个机制暴露在外面，故重写了 class 方法</p>
-<p> 2.2、重写 set 方法</p>
-<p>新类会重写监听属性的 set 方法，如果该类还有其他属性，但是没有监听，不会重写其他属性的 set 方法，并且在重写的 set 方法内增加了另外两个方法的调用：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-(void)willChangeValueForKey:(NSString *)key</div><div class="line">-(void)didChangeValueForKey:(NSString *)key</div></pre></td></tr></table></figure>
-<p>其中，didChangeValueForKey:方法负责调用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">- (void)observeValueForKeyPath:(NSString *)keyPath</div><div class="line">                      ofObject:(id)object</div><div class="line">                        change:(NSDictionary *)change</div><div class="line">                       context:(void *)context</div></pre></td></tr></table></figure>
-<p>这就是 KVO 实现的原理了。</p>
-<p>2.3、增加了 _isKVOA  dealloc 方法</p>
-<p>_isKVOA 用来标示该类是一个 KVO 机制声称的类。</p>
-<h3 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h3><p>KVO 是 Cocoa 提供的一个很强大的特性，但同时它也有很多坑需要我我们注意，比如比如添加完监听后，要在不需要的时候删除掉监听，否则就会造成意外崩溃。还有相对于 delegate , notification,KVO 要创建子类及重写方法，相对的占用更多的内存。对一个复杂和相关性很多的class，用 delegate 或 notification 的方式比较简洁</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1933,7 +1935,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">12</span>
+              <span class="site-state-item-count">13</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
