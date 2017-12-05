@@ -1,0 +1,764 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="这两天花了点时间看了下AFNetworking的源码，特别是对于 AFURLSessionManager 这个核心类研究的比较多，其中有几个疑问，所以写篇文章来记录下
+关于AFURLSessionManager的内存泄露这个问题在issues上被多次提到，就是说仅仅是写个简单的请求，也会出现内存泄露的问题。
+12345678AFHTTPSessionManager *manager = [[AFH">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于AFURLSessionManager的几点疑问">
+<meta property="og:url" content="http://coderzhou.com/2017/12/05/关于AFURLSessionManager的几点疑问/index.html">
+<meta property="og:site_name" content="Sky的博客">
+<meta property="og:description" content="这两天花了点时间看了下AFNetworking的源码，特别是对于 AFURLSessionManager 这个核心类研究的比较多，其中有几个疑问，所以写篇文章来记录下
+关于AFURLSessionManager的内存泄露这个问题在issues上被多次提到，就是说仅仅是写个简单的请求，也会出现内存泄露的问题。
+12345678AFHTTPSessionManager *manager = [[AFH">
+<meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager01.png">
+<meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager03.png">
+<meta property="og:updated_time" content="2017-12-05T11:22:29.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="关于AFURLSessionManager的几点疑问">
+<meta name="twitter:description" content="这两天花了点时间看了下AFNetworking的源码，特别是对于 AFURLSessionManager 这个核心类研究的比较多，其中有几个疑问，所以写篇文章来记录下
+关于AFURLSessionManager的内存泄露这个问题在issues上被多次提到，就是说仅仅是写个简单的请求，也会出现内存泄露的问题。
+12345678AFHTTPSessionManager *manager = [[AFH">
+<meta name="twitter:image" content="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager01.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2017/12/05/关于AFURLSessionManager的几点疑问/"/>
+
+  <title> 关于AFURLSessionManager的几点疑问 | Sky的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Sky的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">一枚小小的程序猿，专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                关于AFURLSessionManager的几点疑问
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-12-05T19:16:30+08:00" content="2017-12-05">
+              2017-12-05
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/12/05/关于AFURLSessionManager的几点疑问/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/05/关于AFURLSessionManager的几点疑问/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/12/05/关于AFURLSessionManager的几点疑问/" class="leancloud_visitors" data-flag-title="关于AFURLSessionManager的几点疑问">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>这两天花了点时间看了下<a href="https://github.com/AFNetworking/AFNetworking" target="_blank" rel="external">AFNetworking</a>的源码，特别是对于 <code>AFURLSessionManager</code> 这个核心类研究的比较多，其中有几个疑问，所以写篇文章来记录下</p>
+<h3 id="关于AFURLSessionManager的内存泄露"><a href="#关于AFURLSessionManager的内存泄露" class="headerlink" title="关于AFURLSessionManager的内存泄露"></a>关于AFURLSessionManager的内存泄露</h3><p>这个问题在<a href="https://github.com/AFNetworking/AFNetworking/issues" target="_blank" rel="external">issues</a>上被多次提到，就是说仅仅是写个简单的请求，也会出现内存泄露的问题。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc]init];</div><div class="line">[manager POST:urlStringparameters:paraDic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line">        </div><div class="line">    &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line">        </div><div class="line">    &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">        </div><div class="line">    &#125;];</div></pre></td></tr></table></figure>
+<p>当我们在 UIViewController 写上这段代码，因为 AFHTTPSessionManager 不是全局的类，不是单利类，理论上来说，当退出当前 UIViewController 时，AFHTTPSessionManager 类的 dealloc 方法应该执行，然后事实上却没有。</p>
+<p>使用Instruments分析为：<br><img src="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager01.png" alt="image"></p>
+<p>意思就是 AFURLSessionManager 持有了 NSURLSession 对象，并且 NSURLSession 的delegate 对象 为AFURLSessionManager，造成了循环引用。其实就是这行代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">self.session = [NSURLSession sessionWithConfiguration:self.sessionConfiguration </div><div class="line">delegate:self delegateQueue:self.operationQueue];</div></pre></td></tr></table></figure>
+<p>为什么会出现这个问题呢？我们来看下苹果开发文档对于这个方法的描述</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">The session object keeps a strong reference to the delegate until your app</div><div class="line"> exits or explicitly invalidates the session. If you do not invalidate the </div><div class="line"> session by calling the invalidateAndCancel or finishTasksAndInvalidate </div><div class="line"> method, your app leaks memory until it exits.</div></pre></td></tr></table></figure>
+<p>果然如此，NSURLSession 对象会强引用传入的 delegate 对象直到APP退出或者手动调用方法使 session 失效，否则会出现内存泄露的问题。</p>
+<p>其实解决这个内存泄露的方法也很简单，官方文档也说了，手动使其失效。我们在 block 回调里调用一下 <code>invalidateAndCancel</code> 就行了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">[manager POST:urlString parameters:dic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line"></div><div class="line">        </div><div class="line">        &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line"></div><div class="line">            [manager.session invalidateAndCancel];</div><div class="line">        &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">            [manager.session invalidateAndCancel];</div><div class="line">        &#125;];</div></pre></td></tr></table></figure>
+<p>但是 AFNetworking 的作者为什么没有这么做呢，而是任其内存泄露？我猜测可能是当一个界面存在多个网络请求时，我们用 manager 去请求，假如在一个请求回调里调用 <code>[manager.session invalidateAndCancel]</code> 方法，那么就使其他的请求终止了，故而发生错误。并且我们在页面下拉刷新时，由于 manager.session 已失效，也会出现错误。</p>
+<h3 id="为什么在block回调里可以写-self-访问属性"><a href="#为什么在block回调里可以写-self-访问属性" class="headerlink" title="为什么在block回调里可以写 self. 访问属性"></a>为什么在block回调里可以写 <code>self.</code> 访问属性</h3><p>比如这样写当前 UIViewController 仍能释放：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong)AFHTTPSessionManager *manager;</div><div class="line"></div><div class="line">self.manager = [[AFHTTPSessionManager alloc]init];</div><div class="line">[manager POST:urlString parameters:dic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line">    &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line"></div><div class="line">        self.XX = XX</div><div class="line">        </div><div class="line">    &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">    &#125;];</div></pre></td></tr></table></figure>
+<p>这里Controller对象是强引用了manager，block强引用了Controller，那么manager强引用了block了吗？肯定是没有的，我们来看下</p>
+<p>AFHTTPSessionManager 有个字典属性：mutableTaskDelegatesKeyedByTaskIdentifier：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (readwrite, nonatomic, strong) NSMutableDictionary *mutableTaskDelegatesKeyedByTaskIdentifier;</div></pre></td></tr></table></figure>
+<p>字典里面放的是，key是NSURLSessionTask的唯一标识，value是AFURLSessionManagerTaskDelegate对象。</p>
+<p>AFURLSessionManagerTaskDelegate这个类强引用了 AFURLSessionManager 对象</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong) AFURLSessionManager *manager;</div></pre></td></tr></table></figure>
+<p>1.UIViewController对象      持有    AFHTTPSessionManager对象</p>
+<p>2.AFHTTPSessionManager对象  持有    字典</p>
+<p>3.字典                          持有    AF…TaskDelegate对象</p>
+<p>4.AF…TaskDelegate对象     持有    AFHTTPSessionManager对象(weak) </p>
+<p>5.AF…TaskDelegate对象     持有    completionHandler(回调的block)</p>
+<p>6.completionHandler        持有    UIViewController对象</p>
+<p>看着很乱，还是看图吧</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager03.png" alt="image"></p>
+<p>那么AFNetworking是怎么处理的呢，怎么打破这种循环引用呢。</p>
+<p>看下这个代理方法，这个方法是请求完成后调用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">              task:(NSURLSessionTask *)task</div><div class="line">didCompleteWithError:(NSError *)error &#123;</div><div class="line"></div><div class="line"> [self removeDelegateForTask:task];</div><div class="line"> </div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)removeDelegateForTask:(NSURLSessionTask *)task &#123;</div><div class="line">    NSParameterAssert(task);</div><div class="line">    AFURLSessionManagerTaskDelegate *delegate = [self delegateForTask:task];</div><div class="line">    [self.lock lock];</div><div class="line">    [delegate cleanUpProgressForTask:task];</div><div class="line">    [self removeNotificationObserverForTask:task];</div><div class="line">    [self.mutableTaskDelegatesKeyedByTaskIdentifier removeObjectForKey:@(task.taskIdentifier)];</div><div class="line">    [self.lock unlock];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在这个回调方法里，把 AFURLSessionManagerTaskDelegate 对象从字典中移除了，就是说字典不再持有 AFURLSessionManagerTaskDelegate 对象，所以就不存在强引用了问题了。</p>
+<h3 id="关于文件下载的操作"><a href="#关于文件下载的操作" class="headerlink" title="关于文件下载的操作"></a>关于文件下载的操作</h3><p>我们来看下 <code>NSURLSessionDownloadDelegate</code> 的这个方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">      downloadTask:(NSURLSessionDownloadTask *)downloadTask</div><div class="line">didFinishDownloadingToURL:(NSURL *)location</div><div class="line">&#123;</div><div class="line">    AFURLSessionManagerTaskDelegate *delegate = [self delegateForTask:downloadTask];</div><div class="line">    if (self.downloadTaskDidFinishDownloading) &#123;</div><div class="line">        //调用自定义的block拿到文件存储的地址</div><div class="line">        NSURL *fileURL = self.downloadTaskDidFinishDownloading(session, downloadTask, location);</div><div class="line">        if (fileURL) &#123;</div><div class="line">            delegate.downloadFileURL = fileURL;</div><div class="line">            NSError *error = nil;</div><div class="line">            //location是临时路径，我们把数据从临时的下载路径移动至我们需要的路径</div><div class="line">            [[NSFileManager defaultManager] moveItemAtURL:location toURL:fileURL error:&amp;error];</div><div class="line">             //如果出错</div><div class="line">            if (error) &#123;</div><div class="line">                [[NSNotificationCenter defaultCenter] postNotificationName:AFURLSessionDownloadTaskDidFailToMoveFileNotification object:downloadTask userInfo:error.userInfo];</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            return;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">     //转发代理</div><div class="line">    if (delegate) &#123;</div><div class="line">        [delegate URLSession:session downloadTask:downloadTask didFinishDownloadingToURL:location];</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个方法我下载文件完成的时候调用。如果设置了 <code>downloadTaskDidFinishDownloadingBlock</code>，就去操作数据，把数据从临时的下载路径移动至我们需要的路径，然后 return，意思就是直接返回，不再执行。</p>
+<p>如果没有设置block，就把这个代理转发到 AFURLSessionManagerTaskDelegate 自定义的代理里面。在自定义代理里做了同样的操作：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">      downloadTask:(NSURLSessionDownloadTask *)downloadTask</div><div class="line">didFinishDownloadingToURL:(NSURL *)location</div><div class="line">&#123;</div><div class="line">    NSError *fileManagerError = nil;</div><div class="line">    self.downloadFileURL = nil;</div><div class="line"></div><div class="line">    //AF代理的自定义Block</div><div class="line">    if (self.downloadTaskDidFinishDownloading) &#123;</div><div class="line">        //得到自定义下载路径</div><div class="line">        self.downloadFileURL = self.downloadTaskDidFinishDownloading(session, downloadTask, location);</div><div class="line">        if (self.downloadFileURL) &#123;</div><div class="line">            //把下载路径移动到我们自定义的下载路径</div><div class="line">            [[NSFileManager defaultManager] moveItemAtURL:location toURL:self.downloadFileURL error:&amp;fileManagerError];</div><div class="line"></div><div class="line">            //错误发通知</div><div class="line">            if (fileManagerError) &#123;</div><div class="line">                [[NSNotificationCenter defaultCenter] postNotificationName:AFURLSessionDownloadTaskDidFailToMoveFileNotification object:downloadTask userInfo:fileManagerError.userInfo];</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>即：如果设置了 <code>downloadTaskDidFinishDownloadingBlock</code>，就去操作数据，把数据从临时的下载路径移动至我们需要的路径。这一步骤跟<code>NSURLSessionDownloadDelegate</code> 里的方法完全一样。并且，如果设置了block，操作文件后直接return了，不会再转发代理了。如果没设置block，转发代理后，在自己的代理方法里又判断了是否设置了block。</p>
+<p>这个转发代理的步骤看起来多余了，AF的作者为什么这样做，让我不得解，难道还有其他的用处？</p>
+<h3 id="其他的一些疑问"><a href="#其他的一些疑问" class="headerlink" title="其他的一些疑问"></a>其他的一些疑问</h3><p>1.当 AFURLSessionManagerTaskDelegate 这个类把 AFURLSessionManager 对象作为属性的时候用的是 weak</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, weak) AFURLSessionManager *manager;</div></pre></td></tr></table></figure>
+<p>在自定义的代理方法里，因为这个属性是weak，所以进行了下面这一步</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(__unused NSURLSession *)session</div><div class="line">              task:(NSURLSessionTask *)task</div><div class="line">didCompleteWithError:(NSError *)error</div><div class="line">&#123;</div><div class="line">	......</div><div class="line">    //强引用self.manager，防止被提前释放；因为self.manager声明为weak</div><div class="line">    __strong AFURLSessionManager *manager = self.manager;</div><div class="line">    .......</div><div class="line"> &#125;</div></pre></td></tr></table></figure>
+<p>关于这个 weak 属性，我看了下，即使换成 strong 也不会出现内存泄露的问题，因为请求完成后 AFURLSessionManager 把 AFURLSessionManagerTaskDelegate 对象从字典中移除了。并且在上面的这个方法里，也不用多去操作一步。有点不明白，为什么用weak。</p>
+<p>2.AFURLSessionManagerTaskDelegate 这个类在声明的时候同样遵循了 <code>NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionDownloadDelegate协议</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface AFURLSessionManagerTaskDelegate : NSObject &lt;NSURLSessionTaskDelegate, </div><div class="line">NSURLSessionDataDelegate, </div><div class="line">NSURLSessionDownloadDelegate&gt;</div></pre></td></tr></table></figure>
+<p>这里不遵循协议一样是可以的。可能是作者为了使这个类更规范一些，更像官方文档那样，所以这样写</p>
+<p>3.在创建 NSURLSession 对象时，指定了回调代理的queque</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">self.operationQueue.maxConcurrentOperationCount = 1;</div><div class="line">self.session = [NSURLSession sessionWithConfiguration:self.sessionConfiguration </div><div class="line">delegate:self delegateQueue:self.operationQueue];</div></pre></td></tr></table></figure>
+<p>这里我注意到了，设置了queue的最大operation并发个数为1，实现似于串行队列的效果。难道是作者为了节省内存资源这样做的，因为即使设置了并发个数为1，NSOperation也是可以同时执行多个任务的。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/12/一次由performSelector引发的BUG/" rel="next" title="一次由performSelector引发的BUG">
+                <i class="fa fa-chevron-left"></i> 一次由performSelector引发的BUG
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/12/05/关于AFURLSessionManager的几点疑问/"
+           data-title="关于AFURLSessionManager的几点疑问" data-url="http://coderzhou.com/2017/12/05/关于AFURLSessionManager的几点疑问/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">15</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#关于AFURLSessionManager的内存泄露"><span class="nav-number">1.</span> <span class="nav-text">关于AFURLSessionManager的内存泄露</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么在block回调里可以写-self-访问属性"><span class="nav-number">2.</span> <span class="nav-text">为什么在block回调里可以写 self. 访问属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关于文件下载的操作"><span class="nav-number">3.</span> <span class="nav-text">关于文件下载的操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他的一些疑问"><span class="nav-number">4.</span> <span class="nav-text">其他的一些疑问</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>
