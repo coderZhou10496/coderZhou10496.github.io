@@ -1,0 +1,761 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="容器类型数据防Crash处理###容器类型处理
+当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
+12345NSArray *array = @[@1,@2,@3];array[3];id value = nil;NSDictionary *dic = @&amp;#123;@&amp;quot;key&amp;quot;:value&amp;#125;;
+数组越界和初始化NSDic">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sky的博客">
+<meta property="og:url" content="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/index.html">
+<meta property="og:site_name" content="Sky的博客">
+<meta property="og:description" content="容器类型数据防Crash处理###容器类型处理
+当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
+12345NSArray *array = @[@1,@2,@3];array[3];id value = nil;NSDictionary *dic = @&amp;#123;@&amp;quot;key&amp;quot;:value&amp;#125;;
+数组越界和初始化NSDic">
+<meta property="og:updated_time" content="2018-01-19T11:50:08.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Sky的博客">
+<meta name="twitter:description" content="容器类型数据防Crash处理###容器类型处理
+当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
+12345NSArray *array = @[@1,@2,@3];array[3];id value = nil;NSDictionary *dic = @&amp;#123;@&amp;quot;key&amp;quot;:value&amp;#125;;
+数组越界和初始化NSDic">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/"/>
+
+  <title>  | Sky的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Sky的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">一枚小小的程序猿，专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-01-19T19:32:07+08:00" content="2018-01-19">
+              2018-01-19
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/01/19/容器类型数据防Crash处理/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/19/容器类型数据防Crash处理/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/01/19/容器类型数据防Crash处理/" class="leancloud_visitors" data-flag-title="">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <hr>
+<h2 id="容器类型数据防Crash处理"><a href="#容器类型数据防Crash处理" class="headerlink" title="容器类型数据防Crash处理"></a>容器类型数据防Crash处理</h2><p>###容器类型处理</p>
+<p>当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">NSArray *array = @[@1,@2,@3];</div><div class="line">array[3];</div><div class="line"></div><div class="line">id value = nil;</div><div class="line">NSDictionary *dic = @&#123;@&quot;key&quot;:value&#125;;</div></pre></td></tr></table></figure>
+<p>数组越界和初始化NSDictionary时value为nil，都会crash.</p>
+<p>防护措施就是hook系统方法，在自己的方法里先进行判断，然后再调用系统方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">ZJSwizzleMethod(NSClassFromString(@&quot;__NSArrayI&quot;), @selector(objectAtIndex:), </div><div class="line">@selector(zj_objectAtIndex:));</div><div class="line"></div><div class="line">void ZJSwizzleMethod(Class c, SEL origSEL, SEL newSEL) &#123;</div><div class="line">    Method origMethod = class_getInstanceMethod(c, origSEL);</div><div class="line">    Method newMethod = nil;</div><div class="line">    if (!origMethod) &#123;</div><div class="line">        c = object_getClass(c);</div><div class="line">        return ZJSwizzleMethod(c, origSEL, newSEL);</div><div class="line">    &#125;else&#123;</div><div class="line">        newMethod = class_getInstanceMethod(c, newSEL);</div><div class="line">        if (!newMethod) &#123;</div><div class="line">            return;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    if(class_addMethod(c, origSEL, method_getImplementation(newMethod), </div><div class="line">    method_getTypeEncoding(newMethod)))&#123;</div><div class="line">            </div><div class="line">        class_replaceMethod(c, newSEL, method_getImplementation(origMethod),</div><div class="line">         method_getTypeEncoding(origMethod));</div><div class="line">    &#125;else&#123;</div><div class="line">            </div><div class="line">        method_exchangeImplementations(origMethod, newMethod);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在交换的方法里判断index是否小于数组个数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">- (id)zj_objectAtIndex:(NSUInteger)index &#123;</div><div class="line">    </div><div class="line">    if(index &gt;= self.count) &#123;</div><div class="line">        ZJSafeCollectionLog(@&quot;[%@ %@] index &#123;%zd&#125; beyond bounds [0...%zd]&quot;,NSStringFromClass([self class]),NSStringFromSelector(_cmd),index,MAX(self.count - 1, 0));</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    return [self zj_objectAtIndex:index];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>如果越界，就在控制台输出日志，但是不会Crash</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">void ZJSafeCollectionLog(NSString*fmt,...) &#123;</div><div class="line">    if (ZJSafeCollectionLogEnabled)</div><div class="line">    &#123;</div><div class="line">        va_list ap;</div><div class="line">        va_start(ap, fmt);</div><div class="line">        NSString *content = [[NSString alloc] initWithFormat:fmt arguments:ap];</div><div class="line">        NSLog(@&quot;%@&quot;, content);</div><div class="line">        va_end(ap);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>例如刚才的这段代码，输出为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">NSArray *array = @[@1,@2,@3];</div><div class="line">array[3];</div><div class="line"></div><div class="line">[__NSArrayI objectAtIndexedSubscript:] index &#123;3&#125; beyond bounds [0...2]</div></pre></td></tr></table></figure>
+<p>同样的，不仅仅是NSArray,对NSMutableArray，NSDictionary，NSMutableDictionary都hook了常用的方法，具体见<a href="https://github.com/coderZhou10496/ZJSafeCollectionDemo" target="_blank" rel="external">Github地址</a></p>
+<p>###unrecognized selector处理</p>
+<p>这个异常是未实现相应的方法，这个Crash防护措施是也是用Runtime进行消息转发。消息转发过程为：</p>
+<ul>
+<li><ol>
+<li>调用resolveInstanceMethod:方法 (或 resolveClassMethod:)。允许用户在此时为该 Class 动态添加实现。如果有实现了，则调用并返回YES，那么重新开始objc_msgSend流程。这一次对象会响应这个选择器，一般是因为它已经调用过class_addMethod。如果仍没实现，继续下面的动作。</li>
+</ol>
+</li>
+<li><ol>
+<li>调用forwardingTargetForSelector:方法，尝试找到一个能响应该消息的对象。如果获取到，则直接把消息转发给它，返回非 nil 对象。否则返回 nil ，继续下面的动作。注意，这里不要返回 self ，否则会形成死循环。</li>
+</ol>
+</li>
+<li><ol>
+<li>调用methodSignatureForSelector:方法，尝试获得一个方法签名。如果获取不到，则直接调用doesNotRecognizeSelector抛出异常。如果能获取，则返回非nil：创建一个 NSlnvocation 并传给forwardInvocation:。在forwardInvocation里进行转发。</li>
+</ol>
+</li>
+</ul>
+<p>可以看出，我们可以在这三个过程中进行动态的添加方法，或对未实现的方法进行转发。</p>
+<p>这种Crash类型分两种，一种是实例方法未实现，一种是类方法未实现。如果是实例方法，在这三步中任何一步进行补救就行，但是如果是类方法，只能在第一步中动态的添加方法来进行防护。</p>
+<p>创建一个NSObject的分类，重写系统方法。但是如果用分类重写方法的话，就会出现一个问题，就是会拦截系统自带的方法，而这些是不需要我们处理的，系统会自动处理，所以我们只需要处理自己创建的类就行了，比如对类方法进行防护Crash：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">+ (BOOL)resolveClassMethod:(SEL)sel &#123;</div><div class="line">#warning &apos;ZJTestClass&apos; only test class</div><div class="line">    Class metaClass = object_getClass([ZJTestClass class]);</div><div class="line">    if([self isKindOfClass:[metaClass class]]) &#123;</div><div class="line">        class_addMethod(metaClass, sel, (IMP)remedyMethod, &quot;v@:&quot;);</div><div class="line">    &#125;</div><div class="line">    return YES;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>ZJTestClass为自己创建的class，实际项目中可以换成BaseModel或者BaseController.如果是类方法未实现，就会进入<code>+ (BOOL)resolveClassMethod:(SEL)sel</code>方法里。因为是类方法，所以代码中的metaClass为元类，如果是自己创建的类，就会进入到if语句中，从而动态添加方法。</p>
+<p>对于实例方法Crash的防护，我是在第二步进行的，具体原因在<a href="https://mp.weixin.qq.com/s?__biz=MzA3ODg4MDk0Ng==&amp;mid=2651113088&amp;idx=1&amp;sn=10b28d7fbcdf0def1a47113e5505728d" target="_blank" rel="external">这篇文章中</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">1.resolveInstanceMethod需要在类的本身上动态添加它本身不存在的方法，这些方法对于该类本身来说冗余的</div><div class="line">2.forwardInvocation可以通过NSInvocation的形式将消息转发给多个对象，但是其开销较大，需要</div><div class="line">创建新的NSInvocation对象，并且forwardInvocation的函数经常被使用者调用，来做多层消息转发</div><div class="line">选择机制，不适合多次重写</div><div class="line">3.forwardingTargetForSelector可以将消息转发给一个对象，开销较小，并且被重写的概率较低，适合重写</div></pre></td></tr></table></figure>
+<p>具体代码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">void remedyMethod (id self,SEL _cmd)</div><div class="line">&#123;</div><div class="line">    if(ZJForwardingLogEnabled) &#123;</div><div class="line">        Class cs = object_getClass(self);</div><div class="line">        NSLog(@&quot;[%@ %@] unrecognized selector&quot;,NSStringFromClass(cs),NSStringFromSelector(_cmd));</div><div class="line">    &#125;</div><div class="line">    return;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (id)forwardingTargetForSelector:(SEL)aSelector &#123;</div><div class="line">#warning &apos;ZJTestClass&apos; only test class</div><div class="line">    if([self isKindOfClass:[UIResponder class]]|| [self isKindOfClass:[ZJTestClass class]] || [self isKindOfClass:[NSNull class]]) &#123;</div><div class="line">        Class ZJProtectorCls = NSClassFromString(@&quot;ZJProtector&quot;);</div><div class="line">        if(!ZJProtectorCls) &#123;</div><div class="line">            ZJProtectorCls = objc_allocateClassPair([NSObject class], &quot;ZJProtector&quot;, 0);</div><div class="line">            objc_registerClassPair(ZJProtectorCls);</div><div class="line">        &#125;</div><div class="line">        class_addMethod(ZJProtectorCls, aSelector, (IMP)remedyMethod, &quot;v@:&quot;);</div><div class="line"></div><div class="line">        Class ZJProtector = [ZJProtectorCls class];</div><div class="line">        id instance = [[ZJProtector alloc] init];</div><div class="line">        return instance;</div><div class="line">    </div><div class="line">    &#125;</div><div class="line">    else &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>动态的创建了一个类<code>ZJProtector</code>，然后再对这个类添加方法<code>class_addMethod</code>。</p>
+<p>最后消息会进入到remedyMethod方法里，方法里有日志输出。</p>
+<p>###对NSNull的处理</p>
+<p>NSNull与nil不同，对nil发送任何方法都是无效的，不会Crash，但是NSNull就像平常使用的类一样，会Crash。GitHub上有一个<a href="https://github.com/nicklockwood/NullSafe" target="_blank" rel="external">NullSafe</a>库，是专门处理这个问题的。也是用消息转发处理的。其中有段代码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">//get class list </div><div class="line">int numClasses = objc_getClassList(NULL, 0);</div><div class="line">Class *classes = (Class *)malloc(sizeof(Class) * (unsigned long)numClasses);</div><div class="line">numClasses = objc_getClassList(classes, numClasses);</div><div class="line"></div><div class="line">//add to list for checking</div><div class="line">for (int i = 0; i &lt; numClasses; i++)</div><div class="line">&#123;</div><div class="line">    //determine if class has a superclass</div><div class="line">    Class someClass = classes[i];</div><div class="line">    Class superclass = class_getSuperclass(someClass);</div><div class="line">    while (superclass)</div><div class="line">    &#123;</div><div class="line">        if (superclass == [NSObject class])</div><div class="line">        &#123;</div><div class="line">            [classList addObject:someClass];</div><div class="line">            [classList removeObject:[someClass superclass]];</div><div class="line">            break;</div><div class="line">        &#125;</div><div class="line">        superclass = class_getSuperclass(superclass);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这段代码意思是获取项目中所有的类，然后遍历，如果是NSObject的子类，就添加到NSMutableSet里。我测试了下，即使为空工程，numClasses为11970，意思是要遍历11970次，非常耗时间。并且在转发时，还要遍历这个classList，判断里面的类是否能响应调用的方法，找到了一个类能响应，就停止遍历。比较耗时间，所以我感觉这样做不太合理。所以我在上面的<code>forwardingTargetForSelector</code>里也添加了对NSNull的判断。例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">NSNull *nul = [NSNull null];</div><div class="line">[nul performSelector:@selector(testMethod)];</div></pre></td></tr></table></figure>
+<p>这样写也不会Crash.但是如果仅仅是用了NullSafe这个库，是处理不了的，因为它仅仅是把消息转发给其他类，然而并没有一个类能响应这个方法，所以一样抛出异常。</p>
+<p>具体Demo：<a href="https://github.com/coderZhou10496/ZJSafeCollectionDemo" target="_blank" rel="external">Github</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/01/04/UIView block动画原理分析/" rel="next" title="UIView block动画原理浅析">
+                <i class="fa fa-chevron-left"></i> UIView block动画原理浅析
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2018/01/19/容器类型数据防Crash处理/"
+           data-title="" data-url="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">17</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#容器类型数据防Crash处理"><span class="nav-number">1.</span> <span class="nav-text">容器类型数据防Crash处理</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>
