@@ -84,25 +84,22 @@
 
 
 
-<meta name="description" content="容器类型数据防Crash处理###容器类型处理
-当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
+<meta name="description" content="容器类型处理当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
 12345NSArray *array = @[@1,@2,@3];array[3];id value = nil;NSDictionary *dic = @&amp;#123;@&amp;quot;key&amp;quot;:value&amp;#125;;
-数组越界和初始化NSDic">
+数组越界和初始化NSDictionary时value为nil，都">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Sky的博客">
+<meta property="og:title" content="容器类型数据防Crash处理">
 <meta property="og:url" content="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/index.html">
 <meta property="og:site_name" content="Sky的博客">
-<meta property="og:description" content="容器类型数据防Crash处理###容器类型处理
-当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
+<meta property="og:description" content="容器类型处理当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
 12345NSArray *array = @[@1,@2,@3];array[3];id value = nil;NSDictionary *dic = @&amp;#123;@&amp;quot;key&amp;quot;:value&amp;#125;;
-数组越界和初始化NSDic">
-<meta property="og:updated_time" content="2018-01-19T11:50:08.000Z">
+数组越界和初始化NSDictionary时value为nil，都">
+<meta property="og:updated_time" content="2018-01-19T12:02:08.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Sky的博客">
-<meta name="twitter:description" content="容器类型数据防Crash处理###容器类型处理
-当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
+<meta name="twitter:title" content="容器类型数据防Crash处理">
+<meta name="twitter:description" content="容器类型处理当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：
 12345NSArray *array = @[@1,@2,@3];array[3];id value = nil;NSDictionary *dic = @&amp;#123;@&amp;quot;key&amp;quot;:value&amp;#125;;
-数组越界和初始化NSDic">
+数组越界和初始化NSDictionary时value为nil，都">
 
 
 
@@ -125,7 +122,7 @@
 
   <link rel="canonical" href="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/"/>
 
-  <title>  | Sky的博客 </title>
+  <title> 容器类型数据防Crash处理 | Sky的博客 </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -235,7 +232,7 @@
             
             
               
-                
+                容器类型数据防Crash处理
               
             
           </h1>
@@ -269,7 +266,7 @@
 
           
           
-             <span id="/2018/01/19/容器类型数据防Crash处理/" class="leancloud_visitors" data-flag-title="">
+             <span id="/2018/01/19/容器类型数据防Crash处理/" class="leancloud_visitors" data-flag-title="容器类型数据防Crash处理">
                &nbsp; | &nbsp;
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -291,9 +288,7 @@
       
 
       
-        <hr>
-<h2 id="容器类型数据防Crash处理"><a href="#容器类型数据防Crash处理" class="headerlink" title="容器类型数据防Crash处理"></a>容器类型数据防Crash处理</h2><p>###容器类型处理</p>
-<p>当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：</p>
+        <h3 id="容器类型处理"><a href="#容器类型处理" class="headerlink" title="容器类型处理"></a>容器类型处理</h3><p>当我们使用NSArray或NSDictionary,如果使用不当，很容易造成crash比如：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">NSArray *array = @[@1,@2,@3];</div><div class="line">array[3];</div><div class="line"></div><div class="line">id value = nil;</div><div class="line">NSDictionary *dic = @&#123;@&quot;key&quot;:value&#125;;</div></pre></td></tr></table></figure>
 <p>数组越界和初始化NSDictionary时value为nil，都会crash.</p>
 <p>防护措施就是hook系统方法，在自己的方法里先进行判断，然后再调用系统方法</p>
@@ -305,8 +300,7 @@
 <p>例如刚才的这段代码，输出为：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">NSArray *array = @[@1,@2,@3];</div><div class="line">array[3];</div><div class="line"></div><div class="line">[__NSArrayI objectAtIndexedSubscript:] index &#123;3&#125; beyond bounds [0...2]</div></pre></td></tr></table></figure>
 <p>同样的，不仅仅是NSArray,对NSMutableArray，NSDictionary，NSMutableDictionary都hook了常用的方法，具体见<a href="https://github.com/coderZhou10496/ZJSafeCollectionDemo" target="_blank" rel="external">Github地址</a></p>
-<p>###unrecognized selector处理</p>
-<p>这个异常是未实现相应的方法，这个Crash防护措施是也是用Runtime进行消息转发。消息转发过程为：</p>
+<h3 id="unrecognized-selector处理"><a href="#unrecognized-selector处理" class="headerlink" title="unrecognized selector处理"></a>unrecognized selector处理</h3><p>这个异常是未实现相应的方法，这个Crash防护措施是也是用Runtime进行消息转发。消息转发过程为：</p>
 <ul>
 <li><ol>
 <li>调用resolveInstanceMethod:方法 (或 resolveClassMethod:)。允许用户在此时为该 Class 动态添加实现。如果有实现了，则调用并返回YES，那么重新开始objc_msgSend流程。这一次对象会响应这个选择器，一般是因为它已经调用过class_addMethod。如果仍没实现，继续下面的动作。</li>
@@ -332,8 +326,7 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">void remedyMethod (id self,SEL _cmd)</div><div class="line">&#123;</div><div class="line">    if(ZJForwardingLogEnabled) &#123;</div><div class="line">        Class cs = object_getClass(self);</div><div class="line">        NSLog(@&quot;[%@ %@] unrecognized selector&quot;,NSStringFromClass(cs),NSStringFromSelector(_cmd));</div><div class="line">    &#125;</div><div class="line">    return;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (id)forwardingTargetForSelector:(SEL)aSelector &#123;</div><div class="line">#warning &apos;ZJTestClass&apos; only test class</div><div class="line">    if([self isKindOfClass:[UIResponder class]]|| [self isKindOfClass:[ZJTestClass class]] || [self isKindOfClass:[NSNull class]]) &#123;</div><div class="line">        Class ZJProtectorCls = NSClassFromString(@&quot;ZJProtector&quot;);</div><div class="line">        if(!ZJProtectorCls) &#123;</div><div class="line">            ZJProtectorCls = objc_allocateClassPair([NSObject class], &quot;ZJProtector&quot;, 0);</div><div class="line">            objc_registerClassPair(ZJProtectorCls);</div><div class="line">        &#125;</div><div class="line">        class_addMethod(ZJProtectorCls, aSelector, (IMP)remedyMethod, &quot;v@:&quot;);</div><div class="line"></div><div class="line">        Class ZJProtector = [ZJProtectorCls class];</div><div class="line">        id instance = [[ZJProtector alloc] init];</div><div class="line">        return instance;</div><div class="line">    </div><div class="line">    &#125;</div><div class="line">    else &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p>动态的创建了一个类<code>ZJProtector</code>，然后再对这个类添加方法<code>class_addMethod</code>。</p>
 <p>最后消息会进入到remedyMethod方法里，方法里有日志输出。</p>
-<p>###对NSNull的处理</p>
-<p>NSNull与nil不同，对nil发送任何方法都是无效的，不会Crash，但是NSNull就像平常使用的类一样，会Crash。GitHub上有一个<a href="https://github.com/nicklockwood/NullSafe" target="_blank" rel="external">NullSafe</a>库，是专门处理这个问题的。也是用消息转发处理的。其中有段代码为：</p>
+<h3 id="对NSNull的处理"><a href="#对NSNull的处理" class="headerlink" title="对NSNull的处理"></a>对NSNull的处理</h3><p>NSNull与nil不同，对nil发送任何方法都是无效的，不会Crash，但是NSNull就像平常使用的类一样，会Crash。GitHub上有一个<a href="https://github.com/nicklockwood/NullSafe" target="_blank" rel="external">NullSafe</a>库，是专门处理这个问题的。也是用消息转发处理的。其中有段代码为：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">//get class list </div><div class="line">int numClasses = objc_getClassList(NULL, 0);</div><div class="line">Class *classes = (Class *)malloc(sizeof(Class) * (unsigned long)numClasses);</div><div class="line">numClasses = objc_getClassList(classes, numClasses);</div><div class="line"></div><div class="line">//add to list for checking</div><div class="line">for (int i = 0; i &lt; numClasses; i++)</div><div class="line">&#123;</div><div class="line">    //determine if class has a superclass</div><div class="line">    Class someClass = classes[i];</div><div class="line">    Class superclass = class_getSuperclass(someClass);</div><div class="line">    while (superclass)</div><div class="line">    &#123;</div><div class="line">        if (superclass == [NSObject class])</div><div class="line">        &#123;</div><div class="line">            [classList addObject:someClass];</div><div class="line">            [classList removeObject:[someClass superclass]];</div><div class="line">            break;</div><div class="line">        &#125;</div><div class="line">        superclass = class_getSuperclass(superclass);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p>这段代码意思是获取项目中所有的类，然后遍历，如果是NSObject的子类，就添加到NSMutableSet里。我测试了下，即使为空工程，numClasses为11970，意思是要遍历11970次，非常耗时间。并且在转发时，还要遍历这个classList，判断里面的类是否能响应调用的方法，找到了一个类能响应，就停止遍历。比较耗时间，所以我感觉这样做不太合理。所以我在上面的<code>forwardingTargetForSelector</code>里也添加了对NSNull的判断。例如：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">NSNull *nul = [NSNull null];</div><div class="line">[nul performSelector:@selector(testMethod)];</div></pre></td></tr></table></figure>
@@ -397,7 +390,7 @@
   <div class="comments" id="comments">
     
       <div class="ds-thread" data-thread-key="2018/01/19/容器类型数据防Crash处理/"
-           data-title="" data-url="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/">
+           data-title="容器类型数据防Crash处理" data-url="http://coderzhou.com/2018/01/19/容器类型数据防Crash处理/">
       </div>
     
   </div>
@@ -492,7 +485,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#容器类型数据防Crash处理"><span class="nav-number">1.</span> <span class="nav-text">容器类型数据防Crash处理</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#容器类型处理"><span class="nav-number">1.</span> <span class="nav-text">容器类型处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#unrecognized-selector处理"><span class="nav-number">2.</span> <span class="nav-text">unrecognized selector处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#对NSNull的处理"><span class="nav-number">3.</span> <span class="nav-text">对NSNull的处理</span></a></li></ol></div>
             
           </div>
         </section>
