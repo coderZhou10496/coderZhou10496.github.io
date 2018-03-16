@@ -225,6 +225,193 @@
             
               
                 
+                <a class="post-title-link" href="/2018/03/16/程序的启动链接过程/" itemprop="url">
+                  程序的启动链接过程
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-03-16T10:32:04+08:00" content="2018-03-16">
+              2018-03-16
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/03/16/程序的启动链接过程/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/16/程序的启动链接过程/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/03/16/程序的启动链接过程/" class="leancloud_visitors" data-flag-title="程序的启动链接过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>main函数是程序的启动入口，但是系统为程序的启动又做了哪些准备呢，二进制文件又是怎样加载进内存的呢？这两天花了点时间深入了了解了一下。</p>
+<h3 id="Mach-O格式简单介绍"><a href="#Mach-O格式简单介绍" class="headerlink" title="Mach-O格式简单介绍"></a>Mach-O格式简单介绍</h3><p>Mach则是苹果操作系统内核，在Mach上，一种可执行的文件格是就是Mach-O（Mach Object file format），这是一种用于记录可执行文件、对象代码、共享库、动态加载代码和内存转储的文件格式。Mach-O 文件一般都有一个 Header ，各种 Load Commands 以及多个 Segment：<br><img src="http://ocauxqtbu.bkt.clouddn.com/link_mach-o.png" alt="image"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1.Header：保存了Mach-O的一些基本信息，包括了平台、文件类型、LoadCommands的个数等等。</div><div class="line">2.LoadCommands：这一段紧跟Header，加载Mach-O文件时会使用这里的数据来确定内存的分布。</div><div class="line">3.Data：每一个segment的具体数据都保存在这里，这里包含了具体的代码、数据等等。</div></pre></td></tr></table></figure>
+<p>####Header<br><img src="http://ocauxqtbu.bkt.clouddn.com/link_mach-o_header.png" alt="image"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">Magic Number:			该文件是64位平台文件还是32位平台文件。值为0xFEEDFACF表示64位，0xFEEDFACE表示32位；</div><div class="line">CPU Type,CPU subType:	确定CPU的平台与版本；</div><div class="line">File Type:				该文件的类型。MH_EXECUTE表示这是一个可执行文件；</div><div class="line">Number of 				Load Commands:Load Commands的个数；</div><div class="line">Size of Load Commands:	Load Commands的长度；</div><div class="line">Flags:					dylb加载时需要的标志位；</div><div class="line">Reserved:				只有64位的时候才存在的字段，暂时没用</div></pre></td></tr></table></figure>
+<p>####Load Commands<br>Load Commands表示的是加载命令，不同的字段就是表示不同的命令，通过解析LoadCommand来加载接下来的数据。举几个例子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">LC_MAIN：整个程序的入口地址，保证进程启动后能够正常的开始整个应用程序的运行</div><div class="line">LC_UUID：唯一ID</div><div class="line">LC_LOAD_DYLINKER：获得动态加载器地址,调用dylb程序</div><div class="line">LC_CODE_SIGNATURE：进行数字签名.</div></pre></td></tr></table></figure>
+<p>等等</p>
+<p>####Segment &amp; Section<br>Data表示原始数据,可以拥有多个段（segment），每个段可以拥有零个或多个区域（section）。每一个段（segment）都拥有一段虚拟地址映射到进程的地址空间。<br>加载数据时，主要加载的就是<code>LC_SEGMENT</code>或者<code>LC_SEGMENT_64</code>。这里大部分的数据是用来帮助内核将Segment映射到虚拟内存。<code>LC_SEGMENT_64</code>的数据结构为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">struct segment_command_64 &#123; /* for 64-bit architectures */</div><div class="line">	uint32_t	cmd;		/* LC_SEGMENT_64 */</div><div class="line">	uint32_t	cmdsize;	/* load command的大小 */</div><div class="line">	char		segname[16];	/* segment name */</div><div class="line">	uint64_t	vmaddr;		/* 段的虚拟内存地址 */</div><div class="line">	uint64_t	vmsize;		/*  段的虚拟内存大小 */</div><div class="line">	uint64_t	fileoff;	/* 段在文件中偏移量 */</div><div class="line">	uint64_t	filesize;	/* 段在文件中的大小 */</div><div class="line">	vm_prot_t	maxprot;	/* maximum VM protection */</div><div class="line">	vm_prot_t	initprot;	/* initial VM protection */</div><div class="line">	uint32_t	nsects;		/* 标示了Segment中有多少secetion */</div><div class="line">	uint32_t	flags;		/* flags */</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>Section的数据结构为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">struct section &#123; /* for 32-bit architectures */</div><div class="line">    char        sectname[16];   /* name of this section */</div><div class="line">    char        segname[16];    /* segment this section goes in */</div><div class="line">    uint32_t    addr;       /* memory address of this section */</div><div class="line">    uint32_t    size;       /* size in bytes of this section */</div><div class="line">    uint32_t    offset;     /* file offset of this section */</div><div class="line">    uint32_t    align;      /* 字节大小对齐 */</div><div class="line">    uint32_t    reloff;     /* file offset of relocation entries */</div><div class="line">    uint32_t    nreloc;     /* number of relocation entries */</div><div class="line">    uint32_t    flags;      /* flags (section type and attributes)*/</div><div class="line">    uint32_t    reserved1;  /* reserved (for offset or index) */</div><div class="line">    uint32_t    reserved2;  /* reserved (for count or sizeof) */</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<ul>
+<li><p><code>__PAGEZERO</code>是第一个段，它的大小在 32 位系统是 4KB+，而在 64 位系统是 4GB+。位于虚拟内存从 0x000000 到 App 真实起始位置之间，都是被标记为不可读写和不可执行。因为里面并没有数据，所以 file size 为 0。主要的作用是为了捕获 NULL 指针使用和指针截断错误，防止引起系统崩溃。开发中常见的 EXC_BAD_ACCESS 异常都是因为错误访问到这里了。</p>
+</li>
+<li><p><code>__TEXT</code> 段包含了 Mach 头部，被执行的代码和只读常量，它被只读和可执行的方式映射。以下是几个常见的 section：</p>
+</li>
+<li><p><code>__text</code> 里就是程序编译后的机器码。</p>
+</li>
+<li><code>__stubs</code> 和 <code>__stub_helper</code> 是给动态链接器（dyld）使用的。</li>
+<li><code>__const</code> 包含常量变量，所有不需要重定向的常量数据都会被编译器放在这里。</li>
+<li><code>__cstring</code> 包含硬编码的字符串常量。</li>
+<li><code>__DATA</code> 段包含了可读写的内容，全局变量和静态变量等，以可读写和不可执行的方式映射。常见的 section 有：<br><code>__nl_symbol_ptr</code> 和 <code>__la_symbol_ptr</code> 分别是 non-lazy 和 lazy 符号指针。lazy 符号指针用于可执行文件中调用未定义的函数，例如不包含在可执行文件中的函数，它们将会延迟加载。而针对 non-lazy 符号指针，当可执行文件被加载同时，也会被加载。</li>
+<li><code>__const</code> 包含需要重定向的常量数据。</li>
+<li><code>__bss</code> 包含没有被初始化的静态变量。</li>
+<li><code>__LINKEDIT</code> 段它的作用是包含如何加载整个文件的「元数据」。例如符号表，字符串表和重定位表。代码签名后每页的加密散列值也会存储到这里。</li>
+</ul>
+<h3 id="动态链接库"><a href="#动态链接库" class="headerlink" title="动态链接库"></a>动态链接库</h3><p>一个程序的编译过程简单分为预编译、编译、汇编、链接等过程。链接就是讲多个目标文件合并成一个可执行文件，静态库和动态库的区别就是在链接阶段如何处理库。在链接阶段，将汇编生成的目标文件与引用到的库一个链接打包到可执行文件中，因为对应的链接方式成为静态链接。而动态库在程序编译时并不会被连接到目标代码中，而是在程序运行是才被载入。使用动态库的好处有</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1.代码共用：很多程序都动态链接了这些 lib，但它们在内存和磁盘中中只有一份</div><div class="line">2.易于维护：由于被依赖的 lib 是程序执行时才 link 的，所以这些 lib 很容易做更新</div><div class="line">3.减少可执行文件体积：相比静态链接，动态链接在编译时不需要打进去，所以可执行文件的体积要小很多</div></pre></td></tr></table></figure>
+<p>但是同样的，加载动态库，就需要动态连接器dylb。动态链接加载器在系统中以一个用户态的可执行文件形式存在，一般应用程序会在Mach-O文件部分指定一个LC_LOAD_DYLINKER的加载命令，此加载命令指定了dyld的路径，通常它的默认值是“/usr/lib/dyld”。系统内核在加载Mach-O文件时，会使用该路径指定的程序作为动态库的加载器来加载dylib。不过dylb是<a href="https://github.com/opensource-apple/dyld" target="_blank" rel="external">开源</a>的。</p>
+<p>###mach-o文件加载</p>
+<p>####dyld自身如何加载</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/link_objc_init.png" alt="image"><br>我们在程序中设个断点，断在<code>_objc_init</code>，我们看到了栈底的<code>_dylb_start</code>方法，那么问题来了,既然各种二进制都是走dyld加载的，那么dyld自身是如何加载进来的呢？<br>系统在解析Mach-O文件时，<code>_dylb_start</code> 的方法地址的是在 <code>LC_UNIXTHREAD</code> 段中解析出来的，然后通过 <code>LC_LOAD_DYLINKER</code> 这个字段来启动这个二进制加载器。从下面dylb的这段源码可以看到，启动前还要做一些准备引导工作，到最后才是调用<code>dyld::_main</code>方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line">//</div><div class="line">//  This is code to bootstrap dyld.  This work in normally done for a program by dyld and crt.</div><div class="line">//  In dyld we have to do this manually.</div><div class="line">//</div><div class="line">uintptr_t start(const struct macho_header* appsMachHeader, int argc, const char* argv[], </div><div class="line">				intptr_t slide, const struct macho_header* dyldsMachHeader,</div><div class="line">				uintptr_t* startGlue)</div><div class="line">&#123;</div><div class="line">	// if kernel had to slide dyld, we need to fix up load sensitive locations</div><div class="line">	// we have to do this before using any global variables</div><div class="line">	if ( slide != 0 ) &#123;</div><div class="line">		rebaseDyld(dyldsMachHeader, slide);</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	// allow dyld to use mach messaging</div><div class="line">	mach_init();</div><div class="line"></div><div class="line">	// kernel sets up env pointer to be just past end of agv array</div><div class="line">	const char** envp = &amp;argv[argc+1];</div><div class="line">	</div><div class="line">	// kernel sets up apple pointer to be just past end of envp array</div><div class="line">	const char** apple = envp;</div><div class="line">	while(*apple != NULL) &#123; ++apple; &#125;</div><div class="line">	++apple;</div><div class="line"></div><div class="line">	// set up random value for stack canary</div><div class="line">	__guard_setup(apple);</div><div class="line"></div><div class="line">#if DYLD_INITIALIZER_SUPPORT</div><div class="line">	// run all C++ initializers inside dyld</div><div class="line">	runDyldInitializers(dyldsMachHeader, slide, argc, argv, envp, apple);</div><div class="line">#endif</div><div class="line"></div><div class="line">	// now that we are done bootstrapping dyld, call dyld&apos;s main</div><div class="line">	uintptr_t appsSlide = slideOfMainExecutable(appsMachHeader);</div><div class="line">	return dyld::_main(appsMachHeader, appsSlide, argc, argv, envp, apple, startGlue);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="链接过程"><a href="#链接过程" class="headerlink" title="链接过程"></a>链接过程</h3><p>有兴趣的同学可以下载源码看下，<code>dyld::_main</code>main方法做的主要事情有</p>
+<ul>
+<li>设置运行环境，环境变量</li>
+<li>实例化Image</li>
+<li>加载共享缓存</li>
+<li>动态库的版本化重载</li>
+<li>加载插入的动态库</li>
+<li>link主程序</li>
+<li>link插入的动态库</li>
+<li>weakBind弱符号绑定</li>
+<li>initialize</li>
+<li>查找入口点并返回</li>
+</ul>
+<p>在所有的动态库做好符号重定位和初始化工作之后，也就是 dyld::_main 临近末尾的时候，dyld 会获取 main 函数的地址返回给 dyld，dyld 紧接着调用 main 函数，将控制权交换给主程序，程序开始真正的执行。<br>下面是<code>dyld::_main</code>方法的部分源代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line">//</div><div class="line">// Entry point for dyld.  The kernel loads dyld and jumps to __dyld_start which</div><div class="line">// sets up some registers and call this function.</div><div class="line">//</div><div class="line">// Returns address of main() in target program which __dyld_start jumps to</div><div class="line">//</div><div class="line">uintptr_t</div><div class="line">_main(const macho_header* mainExecutableMH, uintptr_t mainExecutableSlide, </div><div class="line">		int argc, const char* argv[], const char* envp[], const char* apple[], </div><div class="line">		uintptr_t* startGlue) &#123;</div><div class="line">		...</div><div class="line">		//实例化Image</div><div class="line">		sMainExecutable = instantiateFromLoadedImage(mainExecutableMH, mainExecutableSlide, sExecPath);</div><div class="line">		&#125;</div><div class="line">		...</div><div class="line">		//		加载共享缓存</div><div class="line">		checkSharedRegionDisable();</div><div class="line">		...</div><div class="line">			#if DYLD_SHARED_CACHE_SUPPORT</div><div class="line">//		动态库的版本化重载</div><div class="line">		if ( gLinkContext.sharedRegionMode != ImageLoader::kDontUseSharedRegion )</div><div class="line">			mapSharedCache();</div><div class="line">	#endif</div><div class="line"></div><div class="line">		// Now that shared cache is loaded, setup an versioned dylib overrides</div><div class="line">	#if SUPPORT_VERSIONED_PATHS</div><div class="line">		checkVersionedPaths();</div><div class="line">	#endif</div><div class="line">//加载插入的动态库</div><div class="line">		// load any inserted libraries</div><div class="line">		if	( sEnv.DYLD_INSERT_LIBRARIES != NULL ) &#123;</div><div class="line">			for (const char* const* lib = sEnv.DYLD_INSERT_LIBRARIES; *lib != NULL; ++lib) </div><div class="line">				loadInsertedDylib(*lib);</div><div class="line">		&#125;</div><div class="line">		// record count of inserted libraries so that a flat search will look at </div><div class="line">		// inserted libraries, then main, then others.</div><div class="line">		sInsertedDylibCount = sAllImages.size()-1;</div><div class="line"></div><div class="line">//		link主程序</div><div class="line">		// link main executable</div><div class="line">		gLinkContext.linkingMainExecutable = true;</div><div class="line">		link(sMainExecutable, sEnv.DYLD_BIND_AT_LAUNCH, true, ImageLoader::RPathChain(NULL, NULL));</div><div class="line">		sMainExecutable-&gt;setNeverUnloadRecursive();</div><div class="line">		if ( sMainExecutable-&gt;forceFlat() ) &#123;</div><div class="line">			gLinkContext.bindFlat = true;</div><div class="line">			gLinkContext.prebindUsage = ImageLoader::kUseNoPrebinding;</div><div class="line">		&#125;</div></pre></td></tr></table></figure>
+<p>我们来看一下实例化image的过程,Runtime的初始化过程就是在这里进行的。这个image不是图片的意思，它大概表示一个二进制文件，<code>instantiateFromLoadedImage</code>这个方法就是实例化的过程</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">// The kernel maps in main executable before dyld gets control.  We need to </div><div class="line">// make an ImageLoader* for the already mapped in main executable.</div><div class="line">static ImageLoader* instantiateFromLoadedImage(const macho_header* mh, uintptr_t slide, const char* path)</div><div class="line">&#123;</div><div class="line">	// try mach-o loader</div><div class="line">	if ( isCompatibleMachO((const uint8_t*)mh, path) ) &#123; //检测macho文件是否符合条件,意思是该手机能否处理此mach-o文件</div><div class="line">//		初始化实例：方法内部通过判断mach-o文件是否是压缩过的，然后选择相应的类进行实例化</div><div class="line">		ImageLoader* image = ImageLoaderMachO::instantiateMainExecutable(mh, slide, path, gLinkContext);</div><div class="line">//		添加image到管理的模块中</div><div class="line">		addImage(image);</div><div class="line">		return image;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	throw &quot;main executable not a known format&quot;;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>isCompatibleMachO</code>方法部分源码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">//</div><div class="line">// This is used to validate if a non-fat (aka thin or raw) mach-o file can be used</div><div class="line">// on the current processor. //</div><div class="line">bool isCompatibleMachO(const uint8_t* firstPage, const char* path)</div><div class="line">&#123;</div><div class="line">#if CPU_SUBTYPES_SUPPORTED</div><div class="line">	// It is deemed compatible if any of the following are true:</div><div class="line">	//  1) mach_header subtype is in list of compatible subtypes for running processor</div><div class="line">	//  2) mach_header subtype is same as running processor subtype</div><div class="line">	//  3) mach_header subtype runs on all processor variants</div><div class="line">	const mach_header* mh = (mach_header*)firstPage;</div><div class="line">	...</div><div class="line">	...</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<p>从注释中，可以看出，要满足以下三个条件，手机才能处理此mach-o文件</p>
+<ul>
+<li>mach_header中的subtype支持当前CPU版本。</li>
+<li>mach_header中的subtype和当前正在运行的CPU版本相同。</li>
+<li>mach_header中的subtype在该CPU的所有版本都可以处理。</li>
+</ul>
+<p><code>instantiateMainExecutable</code>方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">// create image for main executable</div><div class="line">ImageLoader* ImageLoaderMachO::instantiateMainExecutable(const macho_header* mh, uintptr_t slide, const char* path, const LinkContext&amp; context)</div><div class="line">&#123;</div><div class="line">	//dyld::log(&quot;ImageLoader=%ld, ImageLoaderMachO=%ld, ImageLoaderMachOClassic=%ld, ImageLoaderMachOCompressed=%ld\n&quot;,</div><div class="line">	//	sizeof(ImageLoader), sizeof(ImageLoaderMachO), sizeof(ImageLoaderMachOClassic), sizeof(ImageLoaderMachOCompressed));</div><div class="line">	bool compressed;</div><div class="line">	unsigned int segCount;</div><div class="line">	unsigned int libCount;</div><div class="line">	const linkedit_data_command* codeSigCmd;</div><div class="line">	const encryption_info_command* encryptCmd;</div><div class="line">//	判断mach-o文件是否是压缩过</div><div class="line">	sniffLoadCommands(mh, path, false, &amp;compressed, &amp;segCount, &amp;libCount, context, &amp;codeSigCmd, &amp;encryptCmd);</div><div class="line">	// instantiate concrete class based on content of load commands</div><div class="line">//	通过是否压缩，用不同的方法来处理</div><div class="line">	if ( compressed )</div><div class="line">		return ImageLoaderMachOCompressed::instantiateMainExecutable(mh, slide, path, segCount, libCount, context);</div><div class="line">	else</div><div class="line">#if SUPPORT_CLASSIC_MACHO</div><div class="line">		return ImageLoaderMachOClassic::instantiateMainExecutable(mh, slide, path, segCount, libCount, context);</div><div class="line">#else</div><div class="line">		throw &quot;missing LC_DYLD_INFO load command&quot;;</div><div class="line">#endif</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>先判断mach-o文件是否压缩过，然后再用不用的方式处理此文件。两个方法的处理方式大同小异，<code>ImageLoaderMachOClassic::instantiateMainExecutable</code>方法里又调用了<code>ImageLoaderMachOClassic::instantiateStart</code>方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">// construct ImageLoaderMachOClassic using &quot;placement new&quot; with SegmentMachO objects array at end</div><div class="line">ImageLoaderMachOClassic* ImageLoaderMachOClassic::instantiateStart(const macho_header* mh, const char* path,</div><div class="line">																		unsigned int segCount, unsigned int libCount)</div><div class="line">&#123;</div><div class="line">	size_t size = sizeof(ImageLoaderMachOClassic) + segCount * sizeof(uint32_t) + libCount * sizeof(ImageLoader*);</div><div class="line">	ImageLoaderMachOClassic* allocatedSpace = static_cast&lt;ImageLoaderMachOClassic*&gt;(malloc(size));</div><div class="line">	if ( allocatedSpace == NULL )</div><div class="line">		throw &quot;malloc failed&quot;;</div><div class="line">	uint32_t* segOffsets = ((uint32_t*)(((uint8_t*)allocatedSpace) + sizeof(ImageLoaderMachOClassic)));</div><div class="line">	bzero(&amp;segOffsets[segCount], libCount*sizeof(void*));	// zero out lib array</div><div class="line">	return new (allocatedSpace) ImageLoaderMachOClassic(mh, path, segCount, segOffsets, libCount);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个方法内主要是申请内存，然后调用<code>ImageLoaderMachOClassic</code>方法，根据mach-o文件segments的规则将数据加载到内存中。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">ImageLoaderMachO::ImageLoaderMachO(const macho_header* mh, const char* path, unsigned int segCount, </div><div class="line">																uint32_t segOffsets[], unsigned int libCount)</div><div class="line"> : ImageLoader(path, libCount), fCoveredCodeLength(0), fMachOData((uint8_t*)mh), fLinkEditBase(NULL), fSlide(0),</div><div class="line">......</div><div class="line">&#123;</div><div class="line">	fIsSplitSeg = ((mh-&gt;flags &amp; MH_SPLIT_SEGS) != 0);        </div><div class="line"></div><div class="line">	// construct SegmentMachO object for each LC_SEGMENT cmd using &quot;placement new&quot; to put </div><div class="line">	// each SegmentMachO object in array at end of ImageLoaderMachO object</div><div class="line">	const uint32_t cmd_count = mh-&gt;ncmds;</div><div class="line">	const struct load_command* const cmds = (struct load_command*)&amp;fMachOData[sizeof(macho_header)];</div><div class="line">	const struct load_command* cmd = cmds;</div><div class="line">	for (uint32_t i = 0, segIndex=0; i &lt; cmd_count; ++i) &#123;</div><div class="line">		if ( cmd-&gt;cmd == LC_SEGMENT_COMMAND ) &#123;</div><div class="line">			const struct macho_segment_command* segCmd = (struct macho_segment_command*)cmd;</div><div class="line">			// ignore zero-sized segments</div><div class="line">			if ( segCmd-&gt;vmsize != 0 ) &#123;</div><div class="line">				// record offset of load command</div><div class="line">				segOffsets[segIndex++] = (uint32_t)((uint8_t*)segCmd - fMachOData);</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		cmd = (const struct load_command*)(((char*)cmd)+cmd-&gt;cmdsize);</div><div class="line">	&#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>到这里，这个方法就执行完了。然后就是最开始的调用<code>addimage</code>方法。这里涉及的源代码非常多，我只是粘贴了一部分。</p>
+<p>####Runtime是在哪个过程中初始化的？</p>
+<p>从上面的那个<code>_objc_init</code>调用栈可以看出，<code>initializeMainExecutable</code>内会进行Runtime的初始化</p>
+<ul>
+<li>initializeMainExecutable()</li>
+<li>ImageLoader::runInitializers()</li>
+<li>…</li>
+<li>doModInitFunctions()</li>
+<li>libdispatch_init</li>
+<li>_os_object_init</li>
+</ul>
+<p>最终的，在<code>_os_object_init</code>这个方法内调用了<code>_objc_init()</code>方法，Runtime 接手后调用，调用map_images 做解析和处理，把 Category 的实例方法、协议以及属性添加到类上，把 Category 的类方法和协议添加到类的 metaclass 上；接下来 <code>load_images</code> 中调用 <code>call_load_methods</code> 方法，遍历所有加载进来的 Class，按继承层级依次调用 Class 的 load 方法和其 Category 的 load 方法。</p>
+<p>本文只是简单介绍了dylb加载mach-o文件的简单流程，具体方法内部如何加载并没有过多探究，比如符号绑定，延迟加载等每一个知识点都可以写一篇文章来阐述。如有错误，请指正</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2018/01/19/容器类型数据防Crash处理/" itemprop="url">
                   容器类型数据防Crash处理
                 </a>
@@ -821,8 +1008,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/11/04/APP的启动/" itemprop="url">
-                  APP的启动
+                <a class="post-title-link" href="/2017/11/04/APP的启动简单优化/" itemprop="url">
+                  APP的启动简单优化
                 </a>
               
             
@@ -846,8 +1033,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2017/11/04/APP的启动/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/04/APP的启动/" itemprop="commentsCount"></span>
+                <a href="/2017/11/04/APP的启动简单优化/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/04/APP的启动简单优化/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -857,7 +1044,7 @@
 
           
           
-             <span id="/2017/11/04/APP的启动/" class="leancloud_visitors" data-flag-title="APP的启动">
+             <span id="/2017/11/04/APP的启动简单优化/" class="leancloud_visitors" data-flag-title="APP的启动简单优化">
                &nbsp; | &nbsp;
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1586,159 +1773,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/04/关于__block的实现原理/" itemprop="url">
-                  __block实现原理
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-04-04T19:04:46+08:00" content="2017-04-04">
-              2017-04-04
-            </time>
-          </span>
-
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2017/04/04/关于__block的实现原理/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/04/关于__block的实现原理/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2017/04/04/关于__block的实现原理/" class="leancloud_visitors" data-flag-title="__block实现原理">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>之前面试的时候，面试官问到过这个问题, <code>__block</code>修饰的对象在 ARC 下和非ARC下有何不同？为什么在 ARC 环境下，<code>__block</code> 修饰对象解决不了循环引用，只能用 __weak? 之前了解的不够全面，今天来深入探讨下。</p>
-<h3 id="block修饰基本常量"><a href="#block修饰基本常量" class="headerlink" title="__block修饰基本常量"></a>__block修饰基本常量</h3><p>首先，对于基本常量，我们来写下测试代码，声明一个两个 int 类型常量，一个加 __block 修饰符，一个不加：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">int main(int argc, char * argv[]) &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">        int value = 1;</div><div class="line">        __block int block_value = 1;</div><div class="line">        void(^myBlock)(void) = ^&#123;</div><div class="line">            NSLog(@&quot;value:%d block_value:%d&quot;,value,block_value);</div><div class="line">        &#125;;</div><div class="line">        value++;</div><div class="line">        block_value++;</div><div class="line">        myBlock();</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>clang 后源码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div></pre></td><td class="code"><pre><div class="line">struct __Block_byref_block_value_0 &#123;</div><div class="line">  void *__isa;</div><div class="line">__Block_byref_block_value_0 *__forwarding;</div><div class="line"> int __flags;</div><div class="line"> int __size;</div><div class="line"> int block_value;</div><div class="line">&#125;;</div><div class="line"></div><div class="line">struct __main_block_impl_0 &#123;</div><div class="line">  struct __block_impl impl;</div><div class="line">  struct __main_block_desc_0* Desc;</div><div class="line">  int value;</div><div class="line">  __Block_byref_block_value_0 *block_value; // by ref</div><div class="line">  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int _value, __Block_byref_block_value_0 *_block_value, int flags=0) : value(_value), block_value(_block_value-&gt;__forwarding) &#123;</div><div class="line">    impl.isa = &amp;_NSConcreteStackBlock;</div><div class="line">    impl.Flags = flags;</div><div class="line">    impl.FuncPtr = fp;</div><div class="line">    Desc = desc;</div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line">static void __main_block_func_0(struct __main_block_impl_0 *__cself) &#123;</div><div class="line">  __Block_byref_block_value_0 *block_value = __cself-&gt;block_value; // bound by ref</div><div class="line">  int value = __cself-&gt;value; // bound by copy</div><div class="line"></div><div class="line">            NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_f4_lvvgftyd48vbb5hbcyk0y1900000gn_T_main_13a5e9_mi_0,value,(block_value-&gt;__forwarding-&gt;block_value));</div><div class="line">        &#125;</div><div class="line">static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) &#123;_Block_object_assign((void*)&amp;dst-&gt;block_value, (void*)src-&gt;block_value, 8/*BLOCK_FIELD_IS_BYREF*/);&#125;</div><div class="line"></div><div class="line">static void __main_block_dispose_0(struct __main_block_impl_0*src) &#123;_Block_object_dispose((void*)src-&gt;block_value, 8/*BLOCK_FIELD_IS_BYREF*/);&#125;</div><div class="line"></div><div class="line">static struct __main_block_desc_0 &#123;</div><div class="line">  size_t reserved;</div><div class="line">  size_t Block_size;</div><div class="line">  void (*copy)(struct __main_block_impl_0*, struct __main_block_impl_0*);</div><div class="line">  void (*dispose)(struct __main_block_impl_0*);</div><div class="line">&#125; __main_block_desc_0_DATA = &#123; 0, sizeof(struct __main_block_impl_0), __main_block_copy_0, __main_block_dispose_0&#125;;</div><div class="line">int main(int argc, char * argv[]) &#123;</div><div class="line">    /* @autoreleasepool */ &#123; __AtAutoreleasePool __autoreleasepool; </div><div class="line"></div><div class="line">        int value = 1;</div><div class="line">        __attribute__((__blocks__(byref))) __Block_byref_block_value_0 block_value = &#123;(void*)0,(__Block_byref_block_value_0 *)&amp;block_value, 0, sizeof(__Block_byref_block_value_0), 1&#125;;</div><div class="line">        void(*myBlock)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, value, (__Block_byref_block_value_0 *)&amp;block_value, 570425344));</div><div class="line">        value++;</div><div class="line">        (block_value.__forwarding-&gt;block_value)++;</div><div class="line">        ((void (*)(__block_impl *))((__block_impl *)myBlock)-&gt;FuncPtr)((__block_impl *)myBlock);</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>咋一看，这么多代码，有点头疼，没事我们慢慢分析，首先看这一段：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">int main(int argc, char * argv[]) &#123;</div><div class="line">    /* @autoreleasepool */ &#123; __AtAutoreleasePool __autoreleasepool; </div><div class="line"></div><div class="line">        int value = 1;</div><div class="line">        __attribute__((__blocks__(byref))) __Block_byref_block_value_0 block_value = &#123;(void*)0,(__Block_byref_block_value_0 *)&amp;block_value, 0, sizeof(__Block_byref_block_value_0), 1&#125;;</div><div class="line">        void(*myBlock)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, value, (__Block_byref_block_value_0 *)&amp;block_value, 570425344));</div><div class="line">        value++;</div><div class="line">        (block_value.__forwarding-&gt;block_value)++;</div><div class="line">        ((void (*)(__block_impl *))((__block_impl *)myBlock)-&gt;FuncPtr)((__block_impl *)myBlock);</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>int value = 1，这行代码没变，clang 后还是这行。倒是 <code>__block int block_value</code> = 1;这句代码，被转化成了 <code>__Block_byref_block_value_0</code> 类型的结构体。结构体里有5个成员变量</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">struct __Block_byref_block_value_0 &#123;</div><div class="line">  void *__isa;</div><div class="line">__Block_byref_block_value_0 *__forwarding;</div><div class="line"> int __flags;</div><div class="line"> int __size;</div><div class="line"> int block_value;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
-<p>注意，这个结构体包含了该实例本身的引用__forwarding，再看下面这行：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">void(*myBlock)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, value, (__Block_byref_block_value_0 *)&amp;block_value, 570425344))</div></pre></td></tr></table></figure>
-<p><code>__main_block_impl_0</code> 为 myBlock 的构造体函数，其中传入的参数具体为：</p>
-<p><code>__main_block_func_0</code> ：包含了block内部的代码，在我们的例子中，就是 NSLog(@”value:%d block_value:%d”,value,block_value)；</p>
-<p><code>__main_block_desc_0_DATA</code>：block的内存管理相关信息；</p>
-<p><code>value</code>：即，传入的 value；</p>
-<p><code>block_value</code>：被转化后的 __Block_byref_block_value_0类型的block_value。</p>
-<p>当我们在 block 内部用到外部变量值的时候，在本例中就是 NSLog的时候，对于没有 __block修饰的 value 常量，直接通过自身，访问 value的值，得到最原始的值，即：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">int value = __cself-&gt;value;</div></pre></td></tr></table></figure>
-<p>关于为什么不能再 block 内部改变外部常量的值，是因为，int value变量定义在栈上，在block调用时已经被销毁，但是我们还能在block内部访问这个值，显然是被 copy 进了block内部。就算我可以在block内部重新设置 value的值，但是当我在 block内 NSlog(@”%d”,value)得到value值得时候，是通过 <code>__cself-&gt;value</code> 得到的，还是当初 copy进来的那个值。所以说，在block 内部重新改变外部 value值是做不到的，既然做不到，那干脆编译器不让我们这么写。所以说，在 block 内部设置外部变量的值得时候，编译器会给错误提示。<br>对于__block修饰的常量，是通过</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">__Block_byref_block_value_0 *block_value = __cself-&gt;block_value; // bound by ref;</div><div class="line">block_value-&gt;__forwarding-&gt;block_value</div></pre></td></tr></table></figure>
-<p>这样得到的。那么问题来了<code>__Block_byref_block_value_0</code> 结构体内部不是有一个成员变量 block_value 吗，直接访问不就好了，为什么还要通过自身引用 <code>__forwarding-&gt;block_value</code>这样得到呢？</p>
-<p>先来了解一下关于 block 的类型：block一共有3种类型的block</p>
-<p>_NSGlobalBlock 全局静态</p>
-<p>_NSStackBlock 保存在栈中，出函数作用域就销毁</p>
-<p>_NSMallocBlock 保存在堆中，retainCount == 0销毁</p>
-<p>ARC环境下，一旦Block赋值就会触发copy，<code>__block</code>修饰的对象就会copy到堆上，Block也是<strong>NSMallocBlock。<br>MRC环境下，只有copy，`</strong>block<code>才会被复制到堆上，否则，</code><strong>block`一直都在栈上，block也只是</strong>NSStackBlock。</p>
-<p>回到刚才的 <code>__forwarding-&gt;block_value</code>问题上，在上面的示例代码中，由于在 ARC 下进行，所以，block为 <code>__NSMallocBlock</code>，<code>__forwarding</code>指向自己。但是在 MRC 下，这样的代码示例，这个block 是 <code>_NSStackBlock</code>，只有被 copy 后才是 <code>__NSMallocBlock</code>。</p>
-<p>通过<code>__forwarding-&gt;block_value</code>这样访问，正是考虑到了ARC 与 MRC的情况，当一个Block被复制到堆上时，与之相关的<code>__block</code>变量也会被复制到堆上，此时堆上的Block持有相应堆上的<code>__block</code>变量，而在栈上的<code>__block</code>变量被复制到堆上之后，会将成员变量<code>__forwarding</code>的值替换为堆上的<code>__block</code>变量的地址。这个时候我们可以通过代码访问：<code>__forwarding-&gt;block_value</code>。这里的两张图非常经典：</p>
-<p>_NSMallocBlock:</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/blockTest_Stack.jpg" alt="image"></p>
-<p>_NSStackBlock -&gt; _NSMallocBlock:</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/blockTest_Malloc.jpg" alt="image"></p>
-<h3 id="block修饰对象"><a href="#block修饰对象" class="headerlink" title="__block修饰对象"></a>__block修饰对象</h3><p>直接上代码，MRC 下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">int main(int argc, char * argv[]) &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">        </div><div class="line">        // MRC下</div><div class="line">        NSObject *obj =[[NSObject alloc] init];</div><div class="line">        __block NSObject *blockObj =[[NSObject alloc] init];</div><div class="line">        </div><div class="line">        void(^myBlock)(void) = ^&#123;</div><div class="line">            NSLog(@&quot;%d %d&quot;,(int)obj.retainCount,(int)blockObj.retainCount);</div><div class="line">        &#125;;</div><div class="line">        myBlock();</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>此时，block内部 obj,和<code>__block</code>修饰下的 blockObj 的 retainCount 为</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2017-04-05 15:50:22.732 BlockTest[4240:1342091] 1 1</div></pre></td></tr></table></figure>
-<p>可以看出来，此时 block 为栈block, obj 和 blockObj 的引用计数都没有增加。但是当我将这个block copy之后，见代码：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">NSObject *obj =[[NSObject alloc] init];</div><div class="line"> __block NSObject *blockObj =[[NSObject alloc] init];</div><div class="line">      </div><div class="line">      void(^myBlock)(void) = ^&#123;</div><div class="line">          NSLog(@&quot;%d %d&quot;,(int)obj.retainCount,(int)blockObj.retainCount);</div><div class="line">      &#125;;</div><div class="line">      [myBlock copy];</div><div class="line">      myBlock();</div></pre></td></tr></table></figure>
-<p>此时，此时 block 为堆block， retainCount 为</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2017-04-05 15:55:22.732 BlockTest[4240:1342091] 2 1</div></pre></td></tr></table></figure>
-<p>即 myBlock 强引用了 obj。这也印证了 ARC 下，block 会强引用内部使用的对象，因为在ARC环境下，我们对 block 进行赋值时，block 会自动copy，转为 <code>_NSMallocBlock</code>，所以会强引用内部对象。</p>
-<p>在 ARC 下，clang 源码为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line">struct __Block_byref_blockObj_0 &#123;</div><div class="line">  void *__isa;</div><div class="line">__Block_byref_blockObj_0 *__forwarding;</div><div class="line"> int __flags;</div><div class="line"> int __size;</div><div class="line"> void (*__Block_byref_id_object_copy)(void*, void*);</div><div class="line"> void (*__Block_byref_id_object_dispose)(void*);</div><div class="line"> NSObject *blockObj;</div><div class="line">&#125;;</div><div class="line"></div><div class="line">struct __main_block_impl_0 &#123;</div><div class="line">  struct __block_impl impl;</div><div class="line">  struct __main_block_desc_0* Desc;</div><div class="line">  NSObject *obj;</div><div class="line">  __Block_byref_blockObj_0 *blockObj; // by ref</div><div class="line">  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, NSObject *_obj, __Block_byref_blockObj_0 *_blockObj, int flags=0) : obj(_obj), blockObj(_blockObj-&gt;__forwarding) &#123;</div><div class="line">    impl.isa = &amp;_NSConcreteStackBlock;</div><div class="line">    impl.Flags = flags;</div><div class="line">    impl.FuncPtr = fp;</div><div class="line">    Desc = desc;</div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line">static void __main_block_func_0(struct __main_block_impl_0 *__cself) &#123;</div><div class="line">  __Block_byref_blockObj_0 *blockObj = __cself-&gt;blockObj; // bound by ref</div><div class="line">  NSObject *obj = __cself-&gt;obj; // bound by copy</div><div class="line"></div><div class="line">            NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_f4_lvvgftyd48vbb5hbcyk0y1900000gn_T_main_0bbf21_mi_0,obj ,(blockObj-&gt;__forwarding-&gt;blockObj));</div><div class="line">        &#125;</div><div class="line">static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) &#123;_Block_object_assign((void*)&amp;dst-&gt;obj, (void*)src-&gt;obj, 3/*BLOCK_FIELD_IS_OBJECT*/);_Block_object_assign((void*)&amp;dst-&gt;blockObj, (void*)src-&gt;blockObj, 8/*BLOCK_FIELD_IS_BYREF*/);&#125;</div><div class="line"></div><div class="line">static void __main_block_dispose_0(struct __main_block_impl_0*src) &#123;_Block_object_dispose((void*)src-&gt;obj, 3/*BLOCK_FIELD_IS_OBJECT*/);_Block_object_dispose((void*)src-&gt;blockObj, 8/*BLOCK_FIELD_IS_BYREF*/);&#125;</div><div class="line"></div><div class="line">static struct __main_block_desc_0 &#123;</div><div class="line">  size_t reserved;</div><div class="line">  size_t Block_size;</div><div class="line">  void (*copy)(struct __main_block_impl_0*, struct __main_block_impl_0*);</div><div class="line">  void (*dispose)(struct __main_block_impl_0*);</div><div class="line">&#125; __main_block_desc_0_DATA = &#123; 0, sizeof(struct __main_block_impl_0), __main_block_copy_0, __main_block_dispose_0&#125;;</div><div class="line">int main(int argc, char * argv[]) &#123;</div><div class="line">    /* @autoreleasepool */ &#123; __AtAutoreleasePool __autoreleasepool; </div><div class="line"></div><div class="line"></div><div class="line">        NSObject *obj =((NSObject *(*)(id, SEL))(void *)objc_msgSend)((id)((NSObject *(*)(id, SEL))(void *)objc_msgSend)((id)objc_getClass(&quot;NSObject&quot;), sel_registerName(&quot;alloc&quot;)), sel_registerName(&quot;init&quot;));</div><div class="line">        __attribute__((__blocks__(byref))) __Block_byref_blockObj_0 blockObj = &#123;(void*)0,(__Block_byref_blockObj_0 *)&amp;blockObj, 33554432, sizeof(__Block_byref_blockObj_0), __Block_byref_id_object_copy_131, __Block_byref_id_object_dispose_131, ((NSObject *(*)(id, SEL))(void *)objc_msgSend)((id)((NSObject *(*)(id, SEL))(void *)objc_msgSend)((id)objc_getClass(&quot;NSObject&quot;), sel_registerName(&quot;alloc&quot;)), sel_registerName(&quot;init&quot;))&#125;;</div><div class="line"></div><div class="line">        void(*myBlock)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, obj, (__Block_byref_blockObj_0 *)&amp;blockObj, 570425344));</div><div class="line">        ((void (*)(__block_impl *))((__block_impl *)myBlock)-&gt;FuncPtr)((__block_impl *)myBlock);</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>对于 obj 和 blockObj 的处理方法与处理常量大径相同，被 <code>__block</code>修饰的对象会被转为 <code>__Block_byref_blockObj_0</code> 结构体类型的对象，这个对象一样强引用着blockObj。就是说，block 会 一直持有被<code>__block</code>修饰的对象，直到 block 对象从堆上销毁。 所以，在ARC 下，<code>__block</code>修饰的对象，不会解决循环引用问题。</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1784,7 +1818,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">17</span>
+              <span class="site-state-item-count">18</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
