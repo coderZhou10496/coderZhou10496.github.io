@@ -90,12 +90,12 @@ Objective-C 是一门动态语言，它会将一">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Runtime学习之一：类与对象">
 <meta property="og:url" content="http://coderzhou.com/2017/03/08/Runtime学习之一：类与对象/index.html">
-<meta property="og:site_name" content="Sky的博客">
+<meta property="og:site_name" content="Jianless的博客">
 <meta property="og:description" content="随着 iOS开发的深入，必须要了解一些底层的东西才能算上高级iOS开发工程师，比如 Runtime，Roonloop之类的。以前都是零碎的看过网上的文章，接下来就系统整理一下，也算是对记忆的加深。
 ###简介Runtime 又叫运行时，是一套底层的 C 语言 API，其为 iOS 内部的核心之一，我们平时编写的 OC 代码，底层都是基于它来实现的。
 Objective-C 是一门动态语言，它会将一">
 <meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/ObjectAndClass.png">
-<meta property="og:updated_time" content="2017-03-26T14:06:56.000Z">
+<meta property="og:updated_time" content="2018-07-06T03:11:43.730Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Runtime学习之一：类与对象">
 <meta name="twitter:description" content="随着 iOS开发的深入，必须要了解一些底层的东西才能算上高级iOS开发工程师，比如 Runtime，Roonloop之类的。以前都是零碎的看过网上的文章，接下来就系统整理一下，也算是对记忆的加深。
@@ -124,7 +124,7 @@ Objective-C 是一门动态语言，它会将一">
 
   <link rel="canonical" href="http://coderzhou.com/2017/03/08/Runtime学习之一：类与对象/"/>
 
-  <title> Runtime学习之一：类与对象 | Sky的博客 </title>
+  <title> Runtime学习之一：类与对象 | Jianless的博客 </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -155,11 +155,11 @@ Objective-C 是一门动态语言，它会将一">
   <div class="custom-logo-site-title">
     <a href="/"  class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
-      <span class="site-title">Sky的博客</span>
+      <span class="site-title">Jianless的博客</span>
       <span class="logo-line-after"><i></i></span>
     </a>
   </div>
-  <p class="site-subtitle">一枚小小的程序猿，专注于iOS开发</p>
+  <p class="site-subtitle">专注于iOS开发</p>
 </div>
 
 <div class="site-nav-toggle">
@@ -183,6 +183,16 @@ Objective-C 是一门动态语言，它会将一">
               <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
             
             首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
           </a>
         </li>
       
@@ -260,8 +270,8 @@ Objective-C 是一门动态语言，它会将一">
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/分类/iOS/" itemprop="url" rel="index">
-                    <span itemprop="name">iOS</span>
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
                   </a>
                 </span>
 
@@ -474,17 +484,17 @@ Objective-C 是一门动态语言，它会将一">
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           
             <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">1</span>
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
                 <span class="site-state-item-name">分类</span>
-              
+              </a>
             </div>
           
 

@@ -89,11 +89,11 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="一次由performSelector引发的BUG">
 <meta property="og:url" content="http://coderzhou.com/2017/11/12/一次由performSelector引发的BUG/index.html">
-<meta property="og:site_name" content="Sky的博客">
+<meta property="og:site_name" content="Jianless的博客">
 <meta property="og:description" content="我们的APP在打包后测试过程过发现，所有的按钮点击效果不灵敏了，就是有时候按钮点击一次后再点就无效了，不会响应用户的操作。这个bug我觉得非常不可思议，并且我在模拟器上，即开发环境下没有任何问题。这篇文章就这个bug，来记录一下解决问题的过程。
 找到解决bug的原因刚才说了，是所有的按钮，并且是在 Release 模式下会出现这个问题。由于是所有的按钮，所以想到了是全局的设置，比如我们可以一行代码">
 <meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/buttonTest.jpg">
-<meta property="og:updated_time" content="2017-12-05T11:24:30.000Z">
+<meta property="og:updated_time" content="2018-07-06T03:10:04.466Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="一次由performSelector引发的BUG">
 <meta name="twitter:description" content="我们的APP在打包后测试过程过发现，所有的按钮点击效果不灵敏了，就是有时候按钮点击一次后再点就无效了，不会响应用户的操作。这个bug我觉得非常不可思议，并且我在模拟器上，即开发环境下没有任何问题。这篇文章就这个bug，来记录一下解决问题的过程。
@@ -121,7 +121,7 @@
 
   <link rel="canonical" href="http://coderzhou.com/2017/11/12/一次由performSelector引发的BUG/"/>
 
-  <title> 一次由performSelector引发的BUG | Sky的博客 </title>
+  <title> 一次由performSelector引发的BUG | Jianless的博客 </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -152,11 +152,11 @@
   <div class="custom-logo-site-title">
     <a href="/"  class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
-      <span class="site-title">Sky的博客</span>
+      <span class="site-title">Jianless的博客</span>
       <span class="logo-line-after"><i></i></span>
     </a>
   </div>
-  <p class="site-subtitle">一枚小小的程序猿，专注于iOS开发</p>
+  <p class="site-subtitle">专注于iOS开发</p>
 </div>
 
 <div class="site-nav-toggle">
@@ -180,6 +180,16 @@
               <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
             
             首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
           </a>
         </li>
       
@@ -248,6 +258,25 @@
             </time>
           </span>
 
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
           
 
           
@@ -412,17 +441,17 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           
             <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">1</span>
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
                 <span class="site-state-item-name">分类</span>
-              
+              </a>
             </div>
           
 
