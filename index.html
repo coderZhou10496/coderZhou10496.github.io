@@ -235,6 +235,185 @@
             
               
                 
+                <a class="post-title-link" href="/2018/07/10/iOS国际化/" itemprop="url">
+                  iOS国际化
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-07-10T20:19:13+08:00" content="2018-07-10">
+              2018-07-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/07/10/iOS国际化/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/10/iOS国际化/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/07/10/iOS国际化/" class="leancloud_visitors" data-flag-title="iOS国际化">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>最近项目里添加了国际化及应用内语言切换功能，遂整理下。</p>
+<h3 id="简单国际化"><a href="#简单国际化" class="headerlink" title="简单国际化"></a>简单国际化</h3><p>当我们创建一个新应用时，文件目录下会默认有一个 <code>Base.lproj</code> 文件，这个文件就是项目在英文语言环境下的默认本地化文件夹。当我们不做国际化时，这个文件没什么用。</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/international_baselproj.png" alt="image"><br><br><br><br><br>假如我们想支持更多的语言，可以在项目里这里设置</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/international_addLanguage.png" alt="image"></p>
+<p>添加完成之后项目文件目录就多了几个语言文件，比如我们新添加了两种：简体中文和繁体中文</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/international_wenjain.png" alt="image"></p>
+<h4 id="应用名称国际化"><a href="#应用名称国际化" class="headerlink" title="应用名称国际化"></a>应用名称国际化</h4><p>创建InfoPlist.strings文件(InfoPlist.strings，名称不要写错…)<br><br><br><br><br><img src="http://ocauxqtbu.bkt.clouddn.com/international_strings.png" alt="image"><br><br><br><br><br>然后分别在 <code>InfoPlist.strings</code> 文件里添加不同语言的key value</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">CFBundleDisplayName = &quot;international&quot;;// 英文</div><div class="line">CFBundleDisplayName = &quot;国际化Demo&quot;;// 中文</div></pre></td></tr></table></figure>
+<p>不仅应用名称可以国际化，其他 <code>info.plist</code> 中的字段可以设置，比如隐私权限设置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">NSPhotoLibraryUsageDescription = &quot;请点击&apos;好&apos;以允许访问。如果不允许,你将无法使用图片功能&quot;;</div><div class="line">NSCameraUsageDescription = &quot;请点击&apos;好&apos;以允许访问。如果不允许,你将无法使用拍摄功能&quot;;</div><div class="line">NSMicrophoneUsageDescription = &quot;请点击&apos;好&apos;以允许访问。如果不允许,你将无法使用麦克风功能&quot;;</div><div class="line">NSLocationWhenInUseUsageDescription = &quot;请点击&apos;好&apos;以允许访问。如果不允许,你将无法使用位置功能&quot;;</div></pre></td></tr></table></figure>
+<p>添加完之后切换语言应用名称会跟着更换：</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/international_test4.jpg" alt="image"></p>
+<h4 id="应用内容国际化"><a href="#应用内容国际化" class="headerlink" title="应用内容国际化"></a>应用内容国际化</h4><p>创建一个strings文件来用作内容国际化，下面会有三个子文件分别用来操作对应语言的国际化内容<br><br><br><br><br><img src="http://ocauxqtbu.bkt.clouddn.com/international_localizable.png" alt="image"><br><br><br><br></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">&quot;LabelText&quot;=&quot;hello,world&quot;;//英文</div><div class="line">&quot;LabelText&quot;=&quot;你好,世界&quot;;//中文</div></pre></td></tr></table></figure>
+<p>当我们在代码中这样写</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(100, 100, 100, 30)];</div><div class="line">label.text = NSLocalizedStringFromTable(@&quot;LabelText&quot;, @&quot;Localizable&quot;, nil);</div><div class="line">[self.view addSubview:label];</div></pre></td></tr></table></figure>
+<p>那么这个lable就会当前手机系统的语言环境，根据 <code>LabelText</code> 这个key去取对应语言的value，如果应用没有对手机系统的语言进行国际化，则取默认语言，比如英文。</p>
+<p>以上就是对APP进行简单国际化，但是这样有一点不好，就是只能根据手机系统自适应处理，无法进行APP内语言的切换。所以语言的国际化和应用内切换语言要我们自己来实现。 </p>
+<h3 id="国际化的本质"><a href="#国际化的本质" class="headerlink" title="国际化的本质"></a>国际化的本质</h3><p>国际化的本质就是根据指定的language，找到本地此语言对应的资源文件(bundle)，在文件中查找key对应的字符串。应用名称的国际化，和APP内容的国际化都是这一个原理，那么我们就从这个原理入手，简述一下实现流程</p>
+<ul>
+<li><ol>
+<li>启动应用后，先查看本地有没有上次保存的语言id，如果有，则设这个语言为当前APP语言</li>
+</ol>
+</li>
+<li><ol>
+<li>如果没有，证明为第一次打开，即从APPStore下载后第一次打开，此时获取手机系统语言，假如APP内对这个语言进行国际化了，则把这个语言设置APP内语言，如果没有，使用默认语言，比如英语。(比如手机系统里语言为德语，但是没有对这个语言进行国际化)</li>
+</ol>
+</li>
+<li><ol>
+<li>后续的APP名称及APP内界面内容都根据设置的语言来进行国际化处理</li>
+</ol>
+</li>
+<li><ol>
+<li>APP内切换语言,就是改变了查找的bundle文件。比如，之前是英语，翻译字符串value从英语环境下的bundle文件下查找，切换成中文后，从中文环境下的bundle文件中查找value。最后，保存切换后的语言id到本地，以便下次使用。</li>
+</ol>
+</li>
+</ul>
+<h3 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h3><h4 id="自建-lproj文件"><a href="#自建-lproj文件" class="headerlink" title="自建 lproj文件"></a>自建 <code>lproj</code>文件</h4><p>刚才提到了，添加语言后会在项目目录下自动生成对应语言的 <code>lproj</code> 文件。在这里，我们可以手动创建 <code>lproj</code> 文件。然后将这些文件放到一个文件夹下，统一管理<br><br><br><br><br><img src="http://ocauxqtbu.bkt.clouddn.com/international_addlproj.png" alt="image"><br><br><br><br></p>
+<p>切换语言后，将bundle路径换成切换后语言的路径</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">// self.currentLanguage 为 zh-hans 或 zh-Hant 或 en</div><div class="line">NSString *path = [[NSBundle mainBundle]pathForResource:self.currentLanguage ofType:@&quot;lproj&quot;];</div><div class="line">self.bundle = [NSBundle bundleWithPath:path];</div></pre></td></tr></table></figure>
+<p>获取key对应的value时，可以这样写</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">-(NSString *)getStringForKey:(NSString *)key withTable:(NSString *)table</div><div class="line">&#123;</div><div class="line">    if (self.bundle)</div><div class="line">    &#123;</div><div class="line">        return NSLocalizedStringFromTableInBundle(key, table, self.bundle, @&quot;&quot;);</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    return NSLocalizedStringFromTable(key, table, @&quot;&quot;);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>-(NSString *)getStringForKey:(NSString *)key withTable:(NSString *)table</code> 这个方法为语言管理单例类的public方法，在 <code>.h</code>文件中声明，value都是通过单例类调用这个方法来获得各个语言的value。</p>
+<h4 id="和服务端的同步"><a href="#和服务端的同步" class="headerlink" title="和服务端的同步"></a>和服务端的同步</h4><p>当我们从APPStore下载APP后，第一次打开应用获得当前手机系统的语言，还要把这个语言同步到服务端，告诉服务端我们使用的是哪个语言，并且后续的接口调用都要用到这个语言id。</p>
+<p>服务端保存一份手机系统上所有语言的字符串列表，分安卓和iOS，这个需要安卓开发人员和iOS开发人员提供给后台，比如我提供的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">@&quot;zh-Hans&quot;  //简体中文</div><div class="line">@&quot;zh-Hant&quot; //繁体中文</div><div class="line">@&quot;en&quot; //英语</div><div class="line">@&quot;ja&quot; //日文</div></pre></td></tr></table></figure>
+<p>第一次启动时，通过 <code>[NSLocale preferredLanguages].firstObject</code> 这个方法获得当前手机系统语言，调用服务端语言接口后，拿当前手机系统语言和接口数据对比，获得语言id，然后后续的接口调用都可以使用这个语言id了。</p>
+<h4 id="第三方库的国际化"><a href="#第三方库的国际化" class="headerlink" title="第三方库的国际化"></a>第三方库的国际化</h4><p>项目里采用了 <code>MJRefresh</code> 第三方刷新库，控件里的刷新状态文字也要国际化。但是这个库的国际化是自己做的，当APP内切换语言后，控件上的文字还是之前语言的文字。看了下源码，最后通过 <code>NSBundle+MJRefresh</code> 文件里的这个方法来获得不同语言的value</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">+ (NSString *)mj_localizedStringForKey:(NSString *)key value:(NSString *)value &#123;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个方法是通过当前语言，获得bundle资源文件，然后在资源文件里得到value后返回。因为它自己有bundle资源文件，我们只需要把bundle文件的路径换成当前语言的文件路径就可以了。</p>
+<p>当然了，不只这个刷新控件，其他有使用道的第三方库，也要国际化一下。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2018/07/06/我的产品体会/" itemprop="url">
                   我的产品体会
                 </a>
@@ -1747,190 +1926,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/05/20/OC与JS的交互/" itemprop="url">
-                  OC与JS的交互
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-05-20T22:00:41+08:00" content="2017-05-20">
-              2017-05-20
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/分类/技术/" itemprop="url" rel="index">
-                    <span itemprop="name">技术</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2017/05/20/OC与JS的交互/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/20/OC与JS的交互/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2017/05/20/OC与JS的交互/" class="leancloud_visitors" data-flag-title="OC与JS的交互">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>在开发的过程中，免不了要与webView打交道，比如一个活动页面，或者一个比较复杂的界面，H5同事写好之后直接给安卓、iOS开发的人调用就行了，但这里就需要用到 Objective-C 与 JavaScript 交互的知识了，OC调用JS的方法，JS调用OC的方法，以及它们之间传值等。闲暇之余花了一些时间整理了一下，大致就一下三种方式来进行交互，相关代码已传至<a href="https://github.com/coderZhou10496/Objective-CInteractiveWithJS" target="_blank" rel="external">Github</a></p>
-<h3 id="一、通过UIWebView代理方法，拦截URL的方法"><a href="#一、通过UIWebView代理方法，拦截URL的方法" class="headerlink" title="一、通过UIWebView代理方法，拦截URL的方法"></a>一、通过UIWebView代理方法，拦截URL的方法</h3><h4 id="OC调用JS"><a href="#OC调用JS" class="headerlink" title="OC调用JS"></a>OC调用JS</h4><p>OC调用js是通过这个方法，来实现的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">-(nullable NSString *)stringByEvaluatingJavaScriptFromString:(NSString *)script;</div></pre></td></tr></table></figure>
-<p>在 Demo 中，我们先通过这个方法注入js方法，当然这个js方法可以直接先写在html文件中，就不用注入了</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">-(void)webViewDidFinishLoad:(UIWebView *)webView</div><div class="line">&#123;</div><div class="line">    [self.webView stringByEvaluatingJavaScriptFromString:[self loadJsFile:@&quot;test&quot;]];</div><div class="line"></div><div class="line">&#125;</div><div class="line">- (NSString *)loadJsFile:(NSString*)fileName</div><div class="line">&#123;</div><div class="line">    NSString *path = [[NSBundle mainBundle] pathForResource:fileName ofType:@&quot;js&quot;];</div><div class="line">    NSString *jsScript = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];</div><div class="line">    return jsScript;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>然后在点击方法里调用这个js方法就行了，返回值即为js方法的返回值</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">- (IBAction)click:(id)sender</div><div class="line">&#123;</div><div class="line">    //     OC 调用 JS</div><div class="line">    //    在OC中通过代码调用JS中名为calculate的方法,并传入两个参数</div><div class="line">    NSString *string =  [self.webView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@&quot;calculate(&apos;%d&apos;,&apos;%d&apos;)&quot;,1,2]];</div><div class="line">    </div><div class="line">    NSLog(@&quot;resultString: %@&quot;,string);</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="JS调用OC"><a href="#JS调用OC" class="headerlink" title="JS调用OC"></a>JS调用OC</h4><p>JS调用OC通过这个方法来实现</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-(BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:</div><div class="line">(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType</div></pre></td></tr></table></figure>
-<p>在这个方法里，我们能拿到urlString，通过这个url进行判断来调用原生OC方法，例如，在js中，方法为</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">&lt;script&gt;</div><div class="line">    function scanClick() &#123;</div><div class="line">        window.location.href = &quot;MyAction://scanClickOperation&quot;</div><div class="line">        </div><div class="line">    &#125;</div><div class="line">    function shakeClick() &#123;</div><div class="line">    window.location.href = &quot;MyAction://shakeClickOperation&quot;</div><div class="line">    </div><div class="line">    &#125;</div><div class="line">&lt;/script&gt;</div></pre></td></tr></table></figure>
-<p>我们通过UIWebView的代理方法，进行拦截判断</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">//    通过 scheme 来拦截是否是自定义的 URL</div><div class="line">    if([[request.URL scheme] isEqualToString:@&quot;myaction&quot;])</div><div class="line">    &#123;</div><div class="line">        if([[request.URL host] isEqualToString:@&quot;scanClickOperation&quot;])</div><div class="line">        &#123;</div><div class="line">            NSLog(@&quot;扫一扫&quot;);</div><div class="line">        &#125;</div><div class="line">        if([[request.URL host] isEqualToString:@&quot;shakeClickOperation&quot;])</div><div class="line">        &#123;</div><div class="line">            NSLog(@&quot;摇一摇&quot;);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    return YES;</div><div class="line">    </div><div class="line">////    也可以通过这种方式来</div><div class="line">//    if([request.URL.absoluteString rangeOfString:@&quot;scanClickOperation&quot;].location != NSNotFound)</div><div class="line">//    &#123;</div><div class="line">//        NSLog(@&quot;扫一扫&quot;);</div><div class="line">//    &#125;</div></pre></td></tr></table></figure>
-<p>GitHub上demo给的很详细，大家可以下载下来看下。</p>
-<h3 id="二、WebViewJavascriptBridge"><a href="#二、WebViewJavascriptBridge" class="headerlink" title="二、WebViewJavascriptBridge"></a>二、WebViewJavascriptBridge</h3><p><a href="https://github.com/marcuswestin/WebViewJavascriptBridge" target="_blank" rel="external">WebViewJavascriptBridge</a>是一个用于OC与JS交互第三方库，在GitHub上有8000多的star，它的原理也是通过shouldStartLoadWithRequest 这个代理方法，对url进行判断来实现的。接下来我们看看这个库怎么用。</p>
-<p>初始化UIWebView的时候，不要为UIWebView设置代理为self，这个库的内部会自动为其设置代理，假如我们还是想在本类调用UIWebView的代理方法，WebViewJavascriptBridge有专门的API来调用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//这里不要为UIWebView设置代理 UIWebView的代理被赋值给WebViewJavascriptBridge。</div><div class="line">UIWebView *webView = [[UIWebView alloc] initWithFrame:self.view.bounds];</div><div class="line">[webView loadHTMLString:appHtml baseURL:url];</div><div class="line">[self.view addSubview:webView];</div><div class="line">self.webView = webView;</div><div class="line"></div><div class="line">WebViewJavascriptBridge *webViewBridge = [WebViewJavascriptBridge bridgeForWebView:webView];</div><div class="line">//将UIWebView的代理，从webViewBridge中再传递出来。意思是假如你要在控制器中实现UIWebView的代理方法时，添加下面这样代码</div><div class="line">[webViewBridge setWebViewDelegate:self];</div><div class="line">self.webViewBridge = webViewBridge;</div></pre></td></tr></table></figure>
-<p>任何有关方法的调用，必须经过下面的js注册，即</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">/*这段代码是固定的，必须要放到js中*/</div><div class="line">function setupWebViewJavascriptBridge(callback) &#123;</div><div class="line">  if (window.WebViewJavascriptBridge) &#123; return callback(WebViewJavascriptBridge); &#125;</div><div class="line">  if (window.WVJBCallbacks) &#123; return window.WVJBCallbacks.push(callback); &#125;</div><div class="line">  window.WVJBCallbacks = [callback];</div><div class="line">  var WVJBIframe = document.createElement(&apos;iframe&apos;);</div><div class="line">  WVJBIframe.style.display = &apos;none&apos;;</div><div class="line">  WVJBIframe.src = &apos;wvjbscheme://__BRIDGE_LOADED__&apos;;</div><div class="line">  document.documentElement.appendChild(WVJBIframe);</div><div class="line">  setTimeout(function() &#123; document.documentElement.removeChild(WVJBIframe) &#125;, 0)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>比较蛋疼，也是特别要注意的地方。</p>
-<h4 id="OC调用JS-1"><a href="#OC调用JS-1" class="headerlink" title="OC调用JS"></a>OC调用JS</h4><p>OC调用JS的方法比较简单，调用分几种：</p>
-<p>1.直接调用，无参数无回调</p>
-<p>2.有参数，有回调</p>
-<p>3.有多个参数，有回调</p>
-<p>Demo中都给出了这几种的例子</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">// 不传参数，直接调用，无回调</div><div class="line">[self.webViewBridge callHandler:@&quot;myOperation&quot;];</div><div class="line"></div><div class="line">// 传参数 有回调</div><div class="line">[self.webViewBridge callHandler:@&quot;factorial&quot; data:@(4) responseCallback:^(id responseData) &#123;</div><div class="line">    NSLog(@&quot;OC端得到responseData: %@&quot;,responseData);</div><div class="line">&#125;];</div><div class="line"></div><div class="line">// 传参数 有回调</div><div class="line">NSArray *array = @[@(1),@(2)];</div><div class="line">[self.webViewBridge callHandler:@&quot;calculate&quot; data:array responseCallback:^(id responseData) &#123;</div><div class="line">    NSLog(@&quot;OC端得到responseData: %@&quot;,responseData);</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
-<p>因为这三个方法，在html文件中，js自己调用 setupWebViewJavascriptBridge 这个方法了，所有不需要在OC代码中进行register，注意这里的方法名，一定要和js中的方法名相同。</p>
-<h4 id="JS调用OC-1"><a href="#JS调用OC-1" class="headerlink" title="JS调用OC"></a>JS调用OC</h4><p>使用 WebViewJavascriptBridge 这个类的 <code>registerHandler</code> 方法进行注册，在block里我们可以使用JS传给OC的参数，及再回调给JS</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">[self.webViewBridge registerHandler:@&quot;changeColor&quot; handler:^(id data, WVJBResponseCallback responseCallback) &#123;</div><div class="line">    </div><div class="line">    //data就是JS传给OC的参数</div><div class="line">    NSDictionary *tempDic = data;</div><div class="line">    CGFloat r = [[tempDic objectForKey:@&quot;r&quot;] floatValue];</div><div class="line">    CGFloat g = [[tempDic objectForKey:@&quot;g&quot;] floatValue];</div><div class="line">    CGFloat b = [[tempDic objectForKey:@&quot;b&quot;] floatValue];</div><div class="line">    CGFloat a = [[tempDic objectForKey:@&quot;a&quot;] floatValue];</div><div class="line">    </div><div class="line">    self.webView.scrollView.backgroundColor = [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:a];</div><div class="line">&#125;];</div><div class="line"></div><div class="line"></div><div class="line">[self.webViewBridge registerHandler:@&quot;JS调用OC&quot; handler:^(id data, WVJBResponseCallback responseCallback) &#123;</div><div class="line">    </div><div class="line">    //data就是JS传给OC的参数</div><div class="line">    NSLog(@&quot;data from JS ：%@&quot;, data);</div><div class="line">    </div><div class="line">    if (responseCallback) &#123;</div><div class="line">        </div><div class="line">        //OC反馈给JS</div><div class="line">        responseCallback(@&quot;我是OC传给JS的数据&quot;);</div><div class="line">        </div><div class="line">    &#125;</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
-<h3 id="二、JavaScriptCore"><a href="#二、JavaScriptCore" class="headerlink" title="二、JavaScriptCore"></a>二、JavaScriptCore</h3><p>JavaScriptCore框架是iOS 7中加入的，该框架让Objective-C和JavaScript代码直接的交互变得更加的简单方便。在项目中引入JavaScriptCore后，链到头文件中，除了大段的Copyright注释可以看到里面只要引入了5个文件，每个文件里都定义跟文件名对应的类。总的来说，JavaScriptCore的使用相对简单，也很方便</p>
-<p>JSContext是JavaScript的运行环境，通过jSCore执行的JS代码都得通过JSContext来执行，相当于HTML中&lt; JavaScript &gt;之间的内容。</p>
-<p>JSValue是JSContext的返回结果，他对数据类型进行了封装，并且为JS和OC的数据类型之间的转换提供了方法。</p>
-<p>JSManagedValue是JSValue的封装，用它可以解决JS和原生代码之间循环引用的问题。</p>
-<p>JSVirtualMachine 管理JS运行时和管理JS暴露的OC对象的内存,是JSContext的容器，可以包含若干个JSContext，在一个进程中，你可以有多个JSVirtualMachine，里面包含着若干个JSContext，而JSContext中又有若干个JSValue</p>
-<p>JSExport是一个协议，通过实现它可以把一个OC对象暴漏给JS，这样JS就可以调用这个对象暴露的方法。</p>
-<p>JavaScriptCore对于JS与OC的交互有两种方式，一种是使用JSExport，另一种是使用block形式。下面只介绍了使用block来进行交互</p>
-<h4 id="JS调用OC-2"><a href="#JS调用OC-2" class="headerlink" title="JS调用OC"></a>JS调用OC</h4><p>先在 <code>viewDidLoad</code> 方法里创建 JSContext 对象，注入JS方法</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">// 初始化 JSContext 对象</div><div class="line">self.OCCallJScontext = [[JSContext alloc] init];</div><div class="line"></div><div class="line">NSString *jsPath = [[NSBundle mainBundle] pathForResource:@&quot;test&quot; ofType:@&quot;js&quot;];</div><div class="line">NSString *jsScript = [NSString stringWithContentsOfFile:jsPath encoding:NSUTF8StringEncoding error:nil];</div><div class="line"> [self.OCCallJScontext evaluateScript:jsScript];</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">- (IBAction)click:(id)sender</div><div class="line">&#123;</div><div class="line">    JSValue *function = [self.OCCallJScontext objectForKeyedSubscript:@&quot;calculate&quot;];</div><div class="line">    </div><div class="line">    // 3 + 4</div><div class="line">    JSValue *result = [function callWithArguments:@[@(3),@(4)]];</div><div class="line">    </div><div class="line">    NSLog(@&quot;通过js方法计算两数之和为 %@&quot;,[result toString]);</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p><code>calculate</code> 方法是和H5同事约定好的，调用方法的字符串。</p>
-<h4 id="OC调用JS-2"><a href="#OC调用JS-2" class="headerlink" title="OC调用JS"></a>OC调用JS</h4><p>首先在<code>webViewDidFinishLoad</code> 方法里获取到 JSContext 对象</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">self.JSCallOCcontext = [webView valueForKeyPath:@&quot;documentView.webView.mainFrame.javaScriptContext&quot;];</div></pre></td></tr></table></figure>
-<p>假如我们在js中，对button绑定了一个方法</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;button onclick=&quot;methodA()&quot;&gt;不传参数&lt;/button&gt;</div></pre></td></tr></table></figure>
-<p>当我们点击网页中的这个button的时候，让它调用原生的方法，可以这样写</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">self.JSCallOCcontext[@&quot;methodA&quot;] =</div><div class="line">^()</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;直接调用不传参数&quot;);</div><div class="line">    // 可以写自己的方法</div><div class="line">    // [self customMethod];</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
-<p>这个方法是不传参数给OC的，假如JS要传参数给OC，可以这样写</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;button onclick=&quot;methodB(&apos;我是参数&apos;)&quot;&gt;传参数&lt;/button&gt;</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">self.JSCallOCcontext[@&quot;methodB&quot;] =</div><div class="line">^(NSString *str)</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;得到JS的参数为 %@&quot;,str);</div><div class="line">    // 可以写自己的方法</div><div class="line">    // [self customMethod];</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
-<p>在block里写对应的原生方法，假如要把结果回调给JS，可以这样写<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;button onclick=&quot;methodD(&apos;我是参数&apos;)&quot;&gt;有返回&lt;/button&gt;</div></pre></td></tr></table></figure></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">    // 并将值返回给js</div><div class="line">__weak ViewController *weakSelf = self;</div><div class="line">self.JSCallOCcontext[@&quot;methodD&quot;] =</div><div class="line">^(NSString *str)</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;得到JS的参数为 %@&quot;,str);</div><div class="line">    str = [NSString stringWithFormat:@&quot;呵呵哒%@&quot;,str];</div><div class="line">    JSValue *callback = weakSelf.JSCallOCcontext[@&quot;callback&quot;];</div><div class="line">    [callback callWithArguments:@[str]];</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
-<p>这里要注意循环引用问题。</p>
-<p>三种交互方法对比：</p>
-<p>如果仅仅是简单的交互，直接在UIWebVIew的代理方法，</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-(BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:</div><div class="line">(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType</div></pre></td></tr></table></figure>
-<p>实现功能即可。如果交互比较复杂，建议使用JavaScriptCore，WebViewJavascriptBridge这个库用起来比较麻烦，我当时也是看了一段时间才看明白，JavaScriptCore用起来还是很方便的</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1976,7 +1971,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-count">20</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
