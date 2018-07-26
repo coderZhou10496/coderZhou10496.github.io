@@ -84,19 +84,24 @@
 
 
 
-<meta name="description" content="看到别人都有自己的技术博客，一时心血来潮，自己也建一个，由于对这方面一窍不通，查了好多资料，用了整整一天，才把这个博客建立起来。
-作为一个搞IT开发的，拥有属于自己的技术博客是必须的，这个博客算是对自己学习过程的记录吧，公司项目不忙的话，尽量多抽点时间学点技术写博客，写完之后你会对所写的技术理解更加深刻，记忆也就越深，总之，也督促自己一定要不断学习。">
+<meta name="description" content="12345static dispatch_once_t onceToken;dispatch_once(&amp;amp;onceToken, ^&amp;#123;   ...&amp;#125;);return instance;
+说到单例，大家都会想到用dispatch_once实现，今天来探究一下dispatch_once内部如何操作的，如何保证线程安全的。
+dispatch_once_t实质就是个long类型的">
 <meta property="og:type" content="article">
-<meta property="og:title" content="新的博客，新的开始">
-<meta property="og:url" content="http://coderzhou.com/2016/08/12/新的博客，新的开始/index.html">
+<meta property="og:title" content="dispatch_once线程安全">
+<meta property="og:url" content="http://coderzhou.com/2018/07/26/dispatch_once线程安全/index.html">
 <meta property="og:site_name" content="Jianless的博客">
-<meta property="og:description" content="看到别人都有自己的技术博客，一时心血来潮，自己也建一个，由于对这方面一窍不通，查了好多资料，用了整整一天，才把这个博客建立起来。
-作为一个搞IT开发的，拥有属于自己的技术博客是必须的，这个博客算是对自己学习过程的记录吧，公司项目不忙的话，尽量多抽点时间学点技术写博客，写完之后你会对所写的技术理解更加深刻，记忆也就越深，总之，也督促自己一定要不断学习。">
-<meta property="og:updated_time" content="2018-07-06T03:09:57.198Z">
+<meta property="og:description" content="12345static dispatch_once_t onceToken;dispatch_once(&amp;amp;onceToken, ^&amp;#123;   ...&amp;#125;);return instance;
+说到单例，大家都会想到用dispatch_once实现，今天来探究一下dispatch_once内部如何操作的，如何保证线程安全的。
+dispatch_once_t实质就是个long类型的">
+<meta property="og:image" content="http://ocauxqtbu.bkt.clouddn.com/dispatch_once%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8.png">
+<meta property="og:updated_time" content="2018-07-26T14:06:00.454Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="新的博客，新的开始">
-<meta name="twitter:description" content="看到别人都有自己的技术博客，一时心血来潮，自己也建一个，由于对这方面一窍不通，查了好多资料，用了整整一天，才把这个博客建立起来。
-作为一个搞IT开发的，拥有属于自己的技术博客是必须的，这个博客算是对自己学习过程的记录吧，公司项目不忙的话，尽量多抽点时间学点技术写博客，写完之后你会对所写的技术理解更加深刻，记忆也就越深，总之，也督促自己一定要不断学习。">
+<meta name="twitter:title" content="dispatch_once线程安全">
+<meta name="twitter:description" content="12345static dispatch_once_t onceToken;dispatch_once(&amp;amp;onceToken, ^&amp;#123;   ...&amp;#125;);return instance;
+说到单例，大家都会想到用dispatch_once实现，今天来探究一下dispatch_once内部如何操作的，如何保证线程安全的。
+dispatch_once_t实质就是个long类型的">
+<meta name="twitter:image" content="http://ocauxqtbu.bkt.clouddn.com/dispatch_once%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8.png">
 
 
 
@@ -117,9 +122,9 @@
 
 
 
-  <link rel="canonical" href="http://coderzhou.com/2016/08/12/新的博客，新的开始/"/>
+  <link rel="canonical" href="http://coderzhou.com/2018/07/26/dispatch_once线程安全/"/>
 
-  <title> 新的博客，新的开始 | Jianless的博客 </title>
+  <title> dispatch_once线程安全 | Jianless的博客 </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -239,7 +244,7 @@
             
             
               
-                新的博客，新的开始
+                dispatch_once线程安全
               
             
           </h1>
@@ -251,8 +256,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-12T13:57:19+08:00" content="2016-08-12">
-              2016-08-12
+            <time itemprop="dateCreated" datetime="2018-07-26T22:04:18+08:00" content="2018-07-26">
+              2018-07-26
             </time>
           </span>
 
@@ -281,8 +286,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/08/12/新的博客，新的开始/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/12/新的博客，新的开始/" itemprop="commentsCount"></span>
+                <a href="/2018/07/26/dispatch_once线程安全/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/26/dispatch_once线程安全/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -292,7 +297,7 @@
 
           
           
-             <span id="/2016/08/12/新的博客，新的开始/" class="leancloud_visitors" data-flag-title="新的博客，新的开始">
+             <span id="/2018/07/26/dispatch_once线程安全/" class="leancloud_visitors" data-flag-title="dispatch_once线程安全">
                &nbsp; | &nbsp;
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -314,8 +319,32 @@
       
 
       
-        <p>看到别人都有自己的技术博客，一时心血来潮，自己也建一个，由于对这方面一窍不通，查了好多资料，用了整整一天，才把这个博客建立起来。</p>
-<p>作为一个搞IT开发的，拥有属于自己的技术博客是必须的，这个博客算是对自己学习过程的记录吧，公司项目不忙的话，尽量多抽点时间学点技术写博客，写完之后你会对所写的技术理解更加深刻，记忆也就越深，总之，也督促自己一定要不断学习。</p>
+        <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">static dispatch_once_t onceToken;</div><div class="line">dispatch_once(&amp;onceToken, ^&#123;</div><div class="line">   ...</div><div class="line">&#125;);</div><div class="line">return instance;</div></pre></td></tr></table></figure>
+<p>说到单例，大家都会想到用<code>dispatch_once</code>实现，今天来探究一下<code>dispatch_once</code>内部如何操作的，如何保证线程安全的。</p>
+<p><code>dispatch_once_t</code>实质就是个<code>long</code>类型的基本变量：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">typedef long dispatch_once_t</div></pre></td></tr></table></figure>
+<p><code>dispatch_once</code> 函数实现为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">void  dispatch_once(dispatch_once_t *val, dispatch_block_t block) &#123;</div><div class="line"></div><div class="line">	dispatch_once_f(val, block, _dispatch_Block_invoke(block));</div><div class="line">	</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>将基本变量的指针及block传进去，<code>dispatch_block_t</code> 是自定义的 ，这个<code>block</code>就是我们要实现的初始化方法，无参数，无返回值</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">typedef void (^dispatch_block_t)(void);</div></pre></td></tr></table></figure>
+<p><code>_dispatch_Block_invoke</code>也是个宏定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">#define _dispatch_Block_invoke(bb) \</div><div class="line">		((dispatch_function_t)((struct Block_layout *)bb)-&gt;invoke)</div></pre></td></tr></table></figure>
+<p>它的作用是获得<code>block</code>内部的<code>invoke</code>的函数指针，这个指针指向的具体的<code>block</code>实现函数的调用地址，就是我们自己在<code>dispatch_block_t</code>里写的那段代码的具体实现地址。</p>
+<p>将变量地址，<code>block</code>，<code>invoke</code>三个参数传入<code>dispatch_once_f</code>方法里，下面继续分析<code>dispatch_once_f</code>方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">void</div><div class="line">dispatch_once_f(dispatch_once_t *val, void *ctxt, dispatch_function_t func)</div><div class="line">&#123;</div><div class="line">#if !DISPATCH_ONCE_INLINE_FASTPATH</div><div class="line">	if (likely(os_atomic_load(val, acquire) == DLOCK_ONCE_DONE)) &#123;</div><div class="line">		return;</div><div class="line">	&#125;</div><div class="line">#endif // !DISPATCH_ONCE_INLINE_FASTPATH</div><div class="line">	return dispatch_once_f_slow(val, ctxt, func);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>DISPATCH_ONCE_INLINE_FASTPATH</code>是判断当前编译环境，是真机还是模拟器。最终实现方法来到了<code>dispatch_once_f_slow</code>方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div></pre></td><td class="code"><pre><div class="line">static void</div><div class="line">dispatch_once_f_slow(dispatch_once_t *val, void *ctxt, dispatch_function_t func)</div><div class="line">&#123;</div><div class="line">#if DISPATCH_GATE_USE_FOR_DISPATCH_ONCE</div><div class="line">	dispatch_once_gate_t l = (dispatch_once_gate_t)val;</div><div class="line"></div><div class="line">	if (_dispatch_once_gate_tryenter(l)) &#123;</div><div class="line">		_dispatch_client_callout(ctxt, func);</div><div class="line">		_dispatch_once_gate_broadcast(l);</div><div class="line">	&#125; else &#123;</div><div class="line">		_dispatch_once_gate_wait(l);</div><div class="line">	&#125;</div><div class="line">#else</div><div class="line">	_dispatch_once_waiter_t volatile *vval = (_dispatch_once_waiter_t*)val;</div><div class="line">	struct _dispatch_once_waiter_s dow = &#123; &#125;;</div><div class="line">	_dispatch_once_waiter_t tail = &amp;dow, next, tmp;</div><div class="line">	dispatch_thread_event_t event;</div><div class="line"></div><div class="line">	if (os_atomic_cmpxchg(vval, NULL, tail, acquire)) &#123;</div><div class="line">		dow.dow_thread = _dispatch_tid_self();</div><div class="line">		_dispatch_client_callout(ctxt, func);</div><div class="line"></div><div class="line">		next = (_dispatch_once_waiter_t)_dispatch_once_xchg_done(val);</div><div class="line">		while (next != tail) &#123;</div><div class="line">			tmp = (_dispatch_once_waiter_t)_dispatch_wait_until(next-&gt;dow_next);</div><div class="line">			event = &amp;next-&gt;dow_event;</div><div class="line">			next = tmp;</div><div class="line">			_dispatch_thread_event_signal(event);</div><div class="line">		&#125;</div><div class="line">	&#125; else &#123;</div><div class="line">		_dispatch_thread_event_init(&amp;dow.dow_event);</div><div class="line">		next = *vval;</div><div class="line">		for (;;) &#123;</div><div class="line">			if (next == DISPATCH_ONCE_DONE) &#123;</div><div class="line">				break;</div><div class="line">			&#125;</div><div class="line">			if (os_atomic_cmpxchgv(vval, next, tail, &amp;next, release)) &#123;</div><div class="line">				dow.dow_thread = next-&gt;dow_thread;</div><div class="line">				dow.dow_next = next;</div><div class="line">				if (dow.dow_thread) &#123;</div><div class="line">					pthread_priority_t pp = _dispatch_get_priority();</div><div class="line">					_dispatch_thread_override_start(dow.dow_thread, pp, val);</div><div class="line">				&#125;</div><div class="line">				_dispatch_thread_event_wait(&amp;dow.dow_event);</div><div class="line">				if (dow.dow_thread) &#123;</div><div class="line">					_dispatch_thread_override_end(dow.dow_thread, val);</div><div class="line">				&#125;</div><div class="line">				break;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		_dispatch_thread_event_destroy(&amp;dow.dow_event);</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码很长，逐段分析：</p>
+<p>首先初始化了一系列的变量，<code>_dispatch_once_waiter_s</code>类似于链表中的节点</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">typedef struct _dispatch_once_waiter_s &#123;</div><div class="line">	volatile struct _dispatch_once_waiter_s *volatile dow_next; // 下一个节点</div><div class="line">	dispatch_thread_event_s dow_event; // 信号量</div><div class="line">	mach_port_t dow_thread; // 线程端口</div><div class="line">&#125; *_dispatch_once_waiter_t;</div></pre></td></tr></table></figure>
+<p><code>if (os_atomic_cmpxchg(vval, NULL, tail, acquire))</code>这行代码展开为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">if (*vval == NULL) &#123;</div><div class="line">	*vval = tail = &amp;dow;</div><div class="line">	return true;</div><div class="line">&#125; else &#123;</div><div class="line">	return false</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>意思是传入的<code>*vval == NULL</code>如果为nil，则赋值，并返回true，并且这个方法是原子操作的。当我们第一次进来，<code>val=0</code>接下来执行<code>if</code>里面的代码。</p>
+<p><code>_dispatch_client_callout</code>表示执行<code>block</code>，然后将next标记为<code>DISPATCH_ONCE_DONE</code>。</p>
+<p>假如整个过程只有一个线程，那么下面的while循环不会执行，执行到这里就结束了，。假如有其他线程进来，就会进入else分支里。</p>
+<p>else分支里，是一个死循环，先判断<code>if (next == DISPATCH_ONCE_DONE)</code>，如果是，直接跳出循环。每进来一次，都会生成一个<code>_dispatch_once_waiter_s</code>的节点，添加到链表的尾部，然后调用信号量等待。而链表的头部是第一次进来的，进入到if代码段的那个节点。当if分支执行完后，会进入while循环遍历链表，依次发送信号将线程唤醒。</p>
+<p>这就是全部的执行过程，用到的知识点主要是原子性操作、链表。由此可以看出大家都说<code>dispatch_once</code>只执行一次这种说话是不严谨的，它本质上可以执行多次，只是把每次执行请求放到了内部的链表里。<br>还是画个图吧。</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/dispatch_once%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8.png" alt=""></p>
 
       
     </div>
@@ -341,13 +370,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2018/07/10/iOS国际化/" rel="next" title="iOS国际化">
+                <i class="fa fa-chevron-left"></i> iOS国际化
+              </a>
+            
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/08/15/老生常谈NSString与NSMutableString/" rel="prev" title="老生常谈NSString与NSMutableString">
-                老生常谈NSString与NSMutableString <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -373,8 +402,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/08/12/新的博客，新的开始/"
-           data-title="新的博客，新的开始" data-url="http://coderzhou.com/2016/08/12/新的博客，新的开始/">
+      <div class="ds-thread" data-thread-key="2018/07/26/dispatch_once线程安全/"
+           data-title="dispatch_once线程安全" data-url="http://coderzhou.com/2018/07/26/dispatch_once线程安全/">
       </div>
     
   </div>
