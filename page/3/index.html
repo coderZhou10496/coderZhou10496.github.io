@@ -235,6 +235,166 @@
             
               
                 
+                <a class="post-title-link" href="/2016/08/15/老生常谈NSString与NSMutableString/" itemprop="url">
+                  老生常谈NSString与NSMutableString
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-15T11:38:34+08:00" content="2016-08-15">
+              2016-08-15
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/08/15/老生常谈NSString与NSMutableString/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/15/老生常谈NSString与NSMutableString/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/08/15/老生常谈NSString与NSMutableString/" class="leancloud_visitors" data-flag-title="老生常谈NSString与NSMutableString">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>NSString与NSMutableString是我们在写代码中最熟悉不过的了，今天我们就来完全彻底的认识一下他们。</p>
+<h3 id="一-、NSConstantString"><a href="#一-、NSConstantString" class="headerlink" title="一 、NSConstantString"></a>一 、NSConstantString</h3><p>我们一般通过下面这种方法来创建一个字符串：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">NSString *string1 = @&quot;Hello World!&quot;;</div><div class="line">NSString *string2 = @&quot;Hello World!&quot;;</div></pre></td></tr></table></figure>
+<p>此时我们打印一下string1与string2的内存地址发现他们是一样的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">2016-08-15 11:14:22.661 StringTest[1028:98759] string1: 0x102c31050</div><div class="line">2016-08-15 11:14:22.661 StringTest[1028:98759] string1: 0x102c31050</div></pre></td></tr></table></figure>
+<p>其实字string1与string2并不是真正包含一个字符串对象，而是指向内存中字符串对象的指针，字面量@”Hello World!”存储在文字常量区，指针string1与string2都指向它，他们在编译时真实类型是NSConstantString</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">NSLog(@&quot;string1:%@&quot;,[string1 class]);</div><div class="line">NSLog(@&quot;string2:%@&quot;,[string2 class]);</div><div class="line"></div><div class="line">输出为：</div><div class="line">string1:__NSCFConstantString</div><div class="line">string2:__NSCFConstantString</div></pre></td></tr></table></figure>
+<p>NSConstantString是NSString的子类，是一个字符串常量，是在编译时创建的，并且是没有retainCount(引用计数的)。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">NSString *string1 = @&quot;Hello World!&quot;;</div><div class="line">NSLog(@&quot;引用计数为：%lu&quot;,string1.retainCount);</div><div class="line">[string1 retainCount];</div><div class="line">NSLog(@&quot;retainCount后引用计数为：%lu&quot;,string1.retainCount);</div><div class="line"></div><div class="line">输出为：</div><div class="line">引用计数为：18446744073709551615</div><div class="line">retainCount后引用计数为：18446744073709551615</div></pre></td></tr></table></figure>
+<p>由此可见，打印引用计数，以及retainCount一次后引用计数都为非正常值，所以说是无引用计数的.<br>再比如我在ViewController里定义了两个属性：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">@property(nonatomic,strong)NSString *string1;</div><div class="line">@property(nonatomic,weak)NSString *string2;</div></pre></td></tr></table></figure>
+<p>然后在实现方法里</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">self.string1 = @&quot;Hello World!&quot;;</div><div class="line">self.string2 = self.string1;</div><div class="line">self.string1 = nil;</div><div class="line">NSLog(@&quot;%@ %@&quot;,self.string1,self.string2);</div></pre></td></tr></table></figure>
+<p>由于string2修饰符是weak，当我让self.string1 = nil时，self.string2也应该为nil，但输出是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2016-08-15 14:09:47.400 StringTest[1265:166991] (null) Hello World!</div></pre></td></tr></table></figure>
+<p>self.string2还有值！<br>原因还是上面所说的，NSConstantString类型的字符串没有引用计数，所以没有强指针指向它，它也不会被销毁。那怎么也让self.string2也为nil呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">self.string1 = [[NSMutableString alloc] initWithFormat:@&quot;Hello World!&quot;];</div></pre></td></tr></table></figure>
+<p>只要这样初始化self.string1就可以啦,此时self.string1类型为__NSCFString，除此之外还有一种类型NSTaggedPointerString，它也是NSString的子类，也是无引用计数的。关于Tagged Pointer，它是苹果为了节省内存和提高执行效率引进的概念，对于64位程序，能大大提高访问速度及减少内存占用，可以看看这篇文章 <a href="http://www.infoq.com/cn/articles/deep-understanding-of-tagged-pointer/" target="_blank" rel="external">深入理解Tagged Pointer</a></p>
+<h3 id="二、copy与strong"><a href="#二、copy与strong" class="headerlink" title="二、copy与strong"></a>二、copy与strong</h3><p>我们在一个类里声明两个字符串属性,一个修饰符是strong，一个copy：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">@property(nonatomic,strong)NSString *strongStr;</div><div class="line">@property(nonatomic,copy)NSString *copyedStr;</div></pre></td></tr></table></figure>
+<p>首先，我们用一个不可变字符串来为他们赋值：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">NSString *string = @&quot;Hello World!&quot;;</div><div class="line">self.strongStr = string;</div><div class="line">self.copyedStr = string;</div><div class="line">NSLog(@&quot;string:    %@, %p, %p&quot;,string, string,&amp;string);</div><div class="line">NSLog(@&quot;strongStr: %@, %p, %p&quot;,_strongStr,_strongStr,&amp;_strongStr);</div><div class="line">NSLog(@&quot;copyedStr: %@, %p, %p&quot;,_copyedStr,_copyedStr,&amp;_copyedStr);</div></pre></td></tr></table></figure>
+<p> 输出分别是值，内存地址，指针地址，输出为：</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">string:    Hello World!, 0x101314078, 0x7fff5e8eba68</div><div class="line">strongStr: Hello World!, 0x101314078, 0x7f8951f48b60</div><div class="line">copyedStr: Hello World!, 0x101314078, 0x7f8951f48b68</div></pre></td></tr></table></figure>
+<p> 由此可见，不管是strong还是copy，string指向的地址都是同一个，假设string有引用计数的话,strong操作和copy操作都使string得引用计数加1。</p>
+<p>接下来，我们把string变成可变对象，并且在对self.strongStr,self.copyedStr赋值后修改string的值，再看一下输出结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">NSMutableString *string = [NSMutableString stringWithFormat:@&quot;Hello World!&quot;];</div><div class="line">self.strongStr = string;</div><div class="line">self.copyedStr = string;</div><div class="line">//在这里修改一下string的值</div><div class="line">[string appendFormat:@&quot;Hi!&quot;];</div><div class="line"></div><div class="line">NSLog(@&quot;string:    %@, %p, %p&quot;,string, string,&amp;string);</div><div class="line">NSLog(@&quot;strongStr: %@, %p, %p&quot;,_strongStr,_strongStr,&amp;_strongStr);</div><div class="line">NSLog(@&quot;copyedStr: %@, %p, %p&quot;,_copyedStr,_copyedStr,&amp;_copyedStr);</div><div class="line">NSLog(@&quot;%lu %lu&quot;,string.retainCount,self.copyedStr.retainCount);</div></pre></td></tr></table></figure>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">string:    Hello World!Hi!, 0x7fea9ae0abb0, 0x7fff59876a68</div><div class="line">strongStr: Hello World!Hi!, 0x7fea9ae0abb0, 0x7fea9ad32500</div><div class="line">copyedStr: Hello World!, 0x7fea9ae0d4c0, 0x7fea9ad32508</div><div class="line">2 1</div></pre></td></tr></table></figure>
+<p> 可以发现，copy属性字符串已不再指向string字符串对象，而是深拷贝了string字符串，并让_copyedStr指向了这个字符串，string的值再发生改变时，_copyedStr的值不会发生变化。此时string的引用计数为2,self.copyedStr引用计数为1.</p>
+<p> 由上面的例子可以看出，当源字符串是NSString时，由于字符串是不可变的，所以，不管strong还是copy属性的对象，都是指向源对象，copy操作只是做了次浅拷贝。</p>
+<p> 当源字符串是NSMutableString时，strong属性只是增加了源字符串的引用计数，而copy属性则是对源字符串做了次深拷贝，产生一个新的对象，且copy属性对象指向这个新的对象。另外需要注意的是，这个copy属性对象的类型始终是NSString，而不是NSMutableString，因此其是不可变的。</p>
+<p> 所以，在声明NSString时，到底是选择strong还是copy，视情况而定。不过，一般我们将对象声明为NSString时，都不希望它改变，所以，大多情况下，我们建议用copy</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/08/12/新的博客，新的开始/" itemprop="url">
                   新的博客，新的开始
                 </a>
@@ -389,7 +549,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
