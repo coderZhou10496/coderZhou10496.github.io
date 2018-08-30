@@ -235,6 +235,171 @@
             
               
                 
+                <a class="post-title-link" href="/2018/08/30/NSNotificationCenter防Crash守护/" itemprop="url">
+                  NSNotificationCenter防Crash守护
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-08-30T15:08:47+08:00" content="2018-08-30">
+              2018-08-30
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/08/30/NSNotificationCenter防Crash守护/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/08/30/NSNotificationCenter防Crash守护/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/08/30/NSNotificationCenter防Crash守护/" class="leancloud_visitors" data-flag-title="NSNotificationCenter防Crash守护">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>对于NSNotificationCenter，使用不当会造成Crash错误，比如没有在dealloc中removeObserver，或者在分线程中进行接收、发送通知等等。</p>
+<ul>
+<li>注：在iOS 9.0 或 macOS 10.11 以后，不需要在dealloc中调用removeObserver方法了,见<a href="https://developer.apple.com/documentation/foundation/nsnotificationcenter/1413994-removeobserver?language=objc" target="_blank" rel="external">官方文档</a></li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">If your app targets iOS 9.0 and later or macOS 10.11 and later, you don&apos;t need to unregister an observer</div><div class="line"> in its dealloc method. Otherwise, you should call this method or removeObserver:name:object: before </div><div class="line"> observer or any object specified in addObserverForName:object:queue:usingBlock: or </div><div class="line"> addObserver:selector:name:object: is deallocated.</div></pre></td></tr></table></figure>
+<p>当向通知中心注册的时候，NSNotificationCenter不会对observer强引用，在iOS 9.0以前，会持有一个<code>__unsafe_unretained</code>的指针，假如observer释放了，指针不会置为nil，变成不安全的指针。而在iOS 9.0及以后，使用<code>weak</code>修饰指针，解决了这个问题。详细见<a href="https://developer.apple.com/library/archive/releasenotes/Foundation/RN-FoundationOlderNotes/index.html#X10_11Notes" target="_blank" rel="external">官方更新说明</a>中关于NSNotificationCenter部分。</p>
+<p>虽然不用移除了。但是探讨如何在dealloc方法中实现自动removeObserver还是有好处的。</p>
+<h3 id="Swillze-dealloc-方法"><a href="#Swillze-dealloc-方法" class="headerlink" title="Swillze dealloc 方法"></a>Swillze dealloc 方法</h3><p>既然需要在dealloc方法中调用removeObserver方法，那么我们Swillze dealloc不就好了吗，在交换的dealloc方法里调用removeObserver。那么又有了一个问题，我们hook的dealloc方法是所有对象的dealloc，即所有对象的dealloc方法都会走我们自己的交换方法，怎么判定这个对象被注册到通知中心了呢？</p>
+<p>所以，也需要hook <code>- (void)addObserver:(id)observer selector:(SEL)aSelector name:(nullable NSNotificationName)aName object:(nullable id)anObject</code> 这个方法，在hook方法里使用Rumtime AssociatedObject为observer添加一个标记。然后在自己的dealloc方法里通过判断是否有标记，来移除observer。</p>
+<p>分析：<br>dealloc方法算是在整个项目里调用最频繁的方法之一了，hook dealloc方法感觉有点得不偿失，对性能有点影响。所以，我对这个 Swillze dealloc方法没有具体写代码去实现。</p>
+<h3 id="AssociatedObject-Weak"><a href="#AssociatedObject-Weak" class="headerlink" title="AssociatedObject + Weak"></a>AssociatedObject + Weak</h3><p>我们先来看看dealloc底层都实现了什么？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">void *objc_destructInstance(id obj) </div><div class="line">&#123;</div><div class="line">    if (obj) &#123;</div><div class="line">        // Read all of the flags at once for performance.</div><div class="line">        bool cxx = obj-&gt;hasCxxDtor();</div><div class="line">        bool assoc = obj-&gt;hasAssociatedObjects();</div><div class="line"></div><div class="line">        // This order is important.</div><div class="line">        if (cxx) object_cxxDestruct(obj);</div><div class="line">        if (assoc) _object_remove_assocations(obj);</div><div class="line">        obj-&gt;clearDeallocating();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    return obj;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其中有重要的两步，就是释放关联对象及弱引用，这个自动removeObserver就是用这两个知识点实现的。</p>
+<p>当向通知中心注册的时候，用AssociatedObject为observer添加一个属性标记，这里使用的是分类的方式添加的，对NSObject添加一个分类，在分类里添加一个属性：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">@interface NSObject (Tag)</div><div class="line">@property (nonatomic, strong) ZJNotificationTag *tag;</div><div class="line">@end</div><div class="line"></div><div class="line">static void *NSObject_ZJTag_Key = &amp;NSObject_ZJTag_Key;</div><div class="line"></div><div class="line">@implementation NSObject (ZJTag)</div><div class="line"></div><div class="line">- (void)setTag:(ZJNotificationTag *)tag &#123;</div><div class="line">    objc_setAssociatedObject(self, NSObject_ZJTag_Key, tag, OBJC_ASSOCIATION_RETAIN_NONATOMIC);</div><div class="line">&#125;</div><div class="line"></div><div class="line">-(ZJNotificationTag *)tag &#123;</div><div class="line">    return (ZJNotificationTag *)objc_getAssociatedObject(self, NSObject_ZJTag_Key);</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>ZJNotificationTag是自定义的，继承自NSObject的子类，持有observer的弱引用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">@interface ZJNotificationTag: NSObject</div><div class="line">@property (nonatomic, weak) id observer;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZJNotificationTag</div><div class="line"></div><div class="line">- (void)setObserver:(id)observer &#123;</div><div class="line">    _observer = observer;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)dealloc &#123;</div><div class="line">    [[NSNotificationCenter defaultCenter] removeObserver:self.observer];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>思路就是当observer释放，即dealloc的时候，dealloc内部会清除与之相关联的对象，即上述代码中的<code>tag</code>对象，而tag对象弱引用observer，所以不会产生循环引用，所以在tag对象的dealloc方法里，通过<code>tag.observer</code>得到了observer对象，从而将observer对象从通知中心移除。</p>
+<p>下面简述一下实现过程中遇到的问题：</p>
+<h4 id="保证observer对象只调用一次remove方法"><a href="#保证observer对象只调用一次remove方法" class="headerlink" title="保证observer对象只调用一次remove方法"></a>保证observer对象只调用一次remove方法</h4><p>假如在ViewController里同时注册多个不同通知，那么在dealloc里也只需移除一次。所以在添加标记时，先判断一下是否已经添加了标记：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">NSObject *_observer = (NSObject *)observer;</div><div class="line">if(!_observer.tag)&#123;</div><div class="line">    ZJNotificationTag *tag = [[ZJNotificationTag alloc] init];</div><div class="line">    _observer.tag = tag;</div><div class="line">    tag.observer = _observer;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="保证不会重复注册observer"><a href="#保证不会重复注册observer" class="headerlink" title="保证不会重复注册observer"></a>保证不会重复注册observer</h4><p>对于同一个通知，即<code>NSNotificationName</code>相同的通知，如果重复注册，就会重复收到回调方法，在这里我维护了一个NSMutableDictionary，来处理这种由于不小心可能造成的bug：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">NSMutableDictionary &lt;NSString*, NSHashTable*&gt;*_dic;</div></pre></td></tr></table></figure>
+<p>key为<code>NSNotificationName</code>，value为<code>NSHashTable</code>，即能实现对内部对象弱引用的Set，当addObserver时先判断是否已经存在了，如果存在，即证明已经注册过了，直接返回，不再调用addObserver方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">NSHashTable *hashTable = [_dic objectForKey:name];</div><div class="line">if(!hashTable) &#123;</div><div class="line">    hashTable = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory];</div><div class="line">    [self _addObserver:observer selector:selector name:name object:object hashTable:hashTable];</div><div class="line">&#125;</div><div class="line">else &#123;</div><div class="line">    if(![hashTable containsObject:observer]) &#123;</div><div class="line">        [self _addObserver:observer selector:selector name:name object:object hashTable:hashTable];</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">[_dic setObject:hashTable forKey:name];</div></pre></td></tr></table></figure>
+<h4 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h4><p>注册observer、添加标记、添加对象到hashTable等操作方法都加了锁，保证线程安全</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">pthread_mutex_init(&amp;_lock, NULL);</div><div class="line"></div><div class="line">pthread_mutex_lock(&amp;_lock);</div><div class="line"></div><div class="line">pthread_mutex_unlock(&amp;_lock);</div></pre></td></tr></table></figure>
+<p>在发送通知时，为了防止多线程可能引起的问题，在这里统一在主线程发出通知，这样的话，就保证了接收通知时一定在主线程，见<a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Notifications/Articles/NotificationCenters.html#//apple_ref/doc/uid/20000216-111349" target="_blank" rel="external">官方文档</a>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">In a multithreaded application, notifications are always delivered in the thread in which the </div><div class="line">notification was posted, which may not be the same thread in which an observer registered itself.</div></pre></td></tr></table></figure>
+<p>借鉴了SDWebImage的做法(站在巨人的肩膀上😝)：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">- (void)postNotificationName:(NSString *)name object:(id)object &#123;</div><div class="line">    </div><div class="line">    dispatch_main_async_safe(^&#123;</div><div class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:name object:object];</div><div class="line">    &#125;);</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h4><p>在ViewController中添加监听的时候：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[[ZJNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveNotification) name:@&quot;TestNotificationName&quot; object:nil];</div></pre></td></tr></table></figure>
+<p>发送通知的时候：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[[ZJNotificationCenter defaultCenter] postNotificationName:@&quot;TestNotificationName&quot; object:nil];</div></pre></td></tr></table></figure>
+<p>本文研究如何实现自动removeObserver，只是想到了这一个思路，文中的代码并未在正式环境中使用，如果错误，请指正。</p>
+<p>代码已传至<a href="https://github.com/coderZhou10496/NotificationDemo" target="_blank" rel="external">Github</a></p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2018/08/02/YYCache中的细节/" itemprop="url">
                   YYCache中的细节
                 </a>
@@ -1722,157 +1887,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/11/04/APP的启动简单优化/" itemprop="url">
-                  APP的启动简单优化
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-11-04T18:33:28+08:00" content="2017-11-04">
-              2017-11-04
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/分类/技术/" itemprop="url" rel="index">
-                    <span itemprop="name">技术</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2017/11/04/APP的启动简单优化/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/04/APP的启动简单优化/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2017/11/04/APP的启动简单优化/" class="leancloud_visitors" data-flag-title="APP的启动简单优化">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>APP的启动是指从用户点击 APP 那一刻开始到用户看到第一个界面的整个过程</p>
-<h3 id="一、APP的启动过程"><a href="#一、APP的启动过程" class="headerlink" title="一、APP的启动过程"></a>一、APP的启动过程</h3><h4 id="1-启动过程"><a href="#1-启动过程" class="headerlink" title="1.启动过程"></a>1.启动过程</h4><p>简单的来说就是 App 进行编译、汇编、链接、代码签名以及启动执行等操作</p>
-<h5 id="1-1-解析Info-plist"><a href="#1-1-解析Info-plist" class="headerlink" title="1.1 解析Info.plist"></a>1.1 解析Info.plist</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1.加载相关信息，例如如闪屏</div><div class="line"></div><div class="line">2.沙箱建立、权限检查</div></pre></td></tr></table></figure>
-<h5 id="1-2-Mach-O加载"><a href="#1-2-Mach-O加载" class="headerlink" title="1.2 Mach-O加载"></a>1.2 Mach-O加载</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">1.如果是胖二进制文件，寻找合适当前CPU类别的部分</div><div class="line"></div><div class="line"> (由于需要支持不同CPU架构的iOS设备，所以我们编译打包出来的执行文件是一个Universal Binary格式文件，通用二进制文件，也称胖二进制文件)</div><div class="line"> </div><div class="line">2.加载所有依赖的Mach-O文件（递归调用Mach-O加载的方法）</div><div class="line"></div><div class="line">3.定位内部、外部指针引用，例如字符串、函数等</div><div class="line"></div><div class="line">4.执行声明为__attribute__((constructor))的C函数</div><div class="line"></div><div class="line">5.加载类扩展（Category）中的方法</div><div class="line"></div><div class="line">6.C++静态对象加载、调用ObjC的 +load 函数</div><div class="line"></div><div class="line">关于Mach-O文件的格式以及详细的加载过程，可看[这篇文章](http://www.jianshu.com/p/54d842db3f69)</div></pre></td></tr></table></figure>
-<h5 id="1-3-程序执行"><a href="#1-3-程序执行" class="headerlink" title="1.3 程序执行"></a>1.3 程序执行</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">1.main函数</div><div class="line"></div><div class="line">2.执行 UIApplicationMain 函数</div><div class="line"></div><div class="line">3.创建 UIApplication 对象</div><div class="line"></div><div class="line">4.创建UIApplicationDelegate对象</div><div class="line"></div><div class="line">5.读取配置文件info.plist，设置程序启动的一些属性</div><div class="line"></div><div class="line">6.创建应用程序的Main Runloop循环</div><div class="line"></div><div class="line">7.UIApplicationDelegate对象开始处理监听对象</div><div class="line"></div><div class="line">8.调用didFinishLaunchingWithOptions方法</div><div class="line"></div><div class="line">9.如果info.plist中配置了启动的storyBoard的文件名，加载storyboard文件，如果没有，创建UIWindow —&gt; rootViewController 显示</div></pre></td></tr></table></figure>
-<h3 id="二、启动时间的计算"><a href="#二、启动时间的计算" class="headerlink" title="二、启动时间的计算"></a>二、启动时间的计算</h3><h4 id="2-1-main-函数之前"><a href="#2-1-main-函数之前" class="headerlink" title="2.1 main()函数之前"></a>2.1 main()函数之前</h4><p>苹果已经给出了方法来帮我们计算这部分的启动时间：<br>在Xcode的菜单中选择<code>Project</code> → <code>Scheme→Edit Scheme</code>，然后找到 <code>Run</code> →  <code>Environment Variables</code>，添加name为 <code>DYLD_PRINT_STATISTICS</code> 为1的环境变量，然后运行APP，会在控制台有一个输出。例如，我在之前的一个项目中加入以上设置后：</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/blog_runTime.png" alt=""></p>
-<p>1.main()函数之前总共使用了401.01ms</p>
-<p>2.在401.01ms中，加载动态库用了112.08ms，指针重定位使用了161.83ms，ObjC类初始化使用了71.04ms，各种初始化使用了55.93ms。</p>
-<p>3.在初始化耗费的55.93ms中，用时最多的三个初始化是libSystem.B.dylib、libMainThreadChecker.dylib以及XiaoBanBattery(自己的项目名称)。</p>
-<h4 id="2-2-main-函数之后"><a href="#2-2-main-函数之后" class="headerlink" title="2.2 main()函数之后"></a>2.2 main()函数之后</h4><p>从main()函数开始至applicationWillFinishLaunching结束，再到完成数据的加载并展示相关信息给用户。</p>
-<p>我们可以自己在这个过程中插入代码，从而获得这段时间。比如在didFinishLaunchingWithOptions获取一下时间，再在第一个主界面viewDidAppear获取一下时间，算出时间差。</p>
-<h3 id="三、启动时间的优化"><a href="#三、启动时间的优化" class="headerlink" title="三、启动时间的优化"></a>三、启动时间的优化</h3><p>一个App完整的启动时间应该保证400ms之内,而若超过20s后还未完全启动App,那么App进程就会被系统杀死。那么如何来提升启动速度呢？</p>
-<h4 id="1-移除不需要用到的动态库"><a href="#1-移除不需要用到的动态库" class="headerlink" title="1. 移除不需要用到的动态库"></a>1. 移除不需要用到的动态库</h4><p>每个App都进行动态库加载,其中系统级别的动态库占据了绝大数,而针对系统级别的动态库都是经过系统高度优化的,不用担心时间的花费.所以我们应该关注于自己集成到App的那些动态库,有些库集成进来了，但是没在代码中用到，一样会需要时间来加载它。所以移除移除不需要用到的动态库是很有必要的。</p>
-<h4 id="2-移除不需要用到的类"><a href="#2-移除不需要用到的类" class="headerlink" title="2. 移除不需要用到的类"></a>2. 移除不需要用到的类</h4><p>日常代码的维护非常重要，如果一个业务去掉了，就应该在当时删掉相关的代码，否则的话无用的代码就会越来越多。日后，再去找这些无用的代码，应该没那么方便了。</p>
-<h4 id="3-合并功能类似的类和分类"><a href="#3-合并功能类似的类和分类" class="headerlink" title="3. 合并功能类似的类和分类"></a>3. 合并功能类似的类和分类</h4><p>这样做主要是为了加快程序的整个动态链接, 在进行动态库的重定位和绑定过程中减少指针修正的使用,加快程序机器码的生成。所以要合并一些在工程、架构上没有太大意义的类和分类。</p>
-<h4 id="4-使用initialize方法进行必要的初始化工作"><a href="#4-使用initialize方法进行必要的初始化工作" class="headerlink" title="4. 使用initialize方法进行必要的初始化工作"></a>4. 使用initialize方法进行必要的初始化工作</h4><p>如果不是非必须的，我们要用+initialize方法替换调用原先在OC的+load方法中执行初始代码工作,从而加快所有类文件的加载速度。</p>
-<h4 id="5-压缩资源图片"><a href="#5-压缩资源图片" class="headerlink" title="5. 压缩资源图片"></a>5. 压缩资源图片</h4><p>启动的时候加载图片，图片小了，IO操作量就小了，启动当然就会快了，但是还是要以图片的质量，清晰度为前提下。</p>
-<h4 id="6-优化rootViewController加载"><a href="#6-优化rootViewController加载" class="headerlink" title="6. 优化rootViewController加载"></a>6. 优化rootViewController加载</h4><p>在didFinishLaunchingWithOptions方法里，我们一般进行初始化第三方SDK、自己的一些工具类的初始化、然后再到第一个界面的渲染。其实这些东西也可以分开来做：</p>
-<p>1.最先配置的事件，比如日志，统计等可以在没有设置rootViewController前进行初始化。</p>
-<p>2.第三方SDK，比如推送，支付SDk，直播SDk的集成，可以在设置rootViewController后进行初始化，这样不会影响第一个视图的加载，毕竟人的视觉看到视图出现很快，就会觉得加载很快。</p>
-<p>3.工具类的初始化配置。比如集成了IQKeyboardManager,需要启动的时候进行全局设置，这个操作可以放在第一个界面的viewDidAppear，这里完全不会影响到启动时间。</p>
-<p>本文只是简单简述了APP的启动，比如点击APP图标后，动态库是如何链接到内存中的，代码的二进制文件是如何加载的等这些过程还需更深层次的探究。对于优化启动时间这个方面，我们只能做的就是写出更好的代码，优化项目。</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1918,7 +1932,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-count">23</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

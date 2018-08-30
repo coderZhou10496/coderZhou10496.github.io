@@ -1,0 +1,782 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="对于NSNotificationCenter，使用不当会造成Crash错误，比如没有在dealloc中removeObserver，或者在分线程中进行接收、发送通知等等。
+
+注：在iOS 9.0 或 macOS 10.11 以后，不需要在dealloc中调用removeObserver方法了,见官方文档
+
+1234If your app targets iOS 9.0 and later or m">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NSNotificationCenter防Crash守护">
+<meta property="og:url" content="http://coderzhou.com/2018/08/30/NSNotificationCenter防Crash守护/index.html">
+<meta property="og:site_name" content="Jianless的博客">
+<meta property="og:description" content="对于NSNotificationCenter，使用不当会造成Crash错误，比如没有在dealloc中removeObserver，或者在分线程中进行接收、发送通知等等。
+
+注：在iOS 9.0 或 macOS 10.11 以后，不需要在dealloc中调用removeObserver方法了,见官方文档
+
+1234If your app targets iOS 9.0 and later or m">
+<meta property="og:updated_time" content="2018-08-30T07:14:37.012Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NSNotificationCenter防Crash守护">
+<meta name="twitter:description" content="对于NSNotificationCenter，使用不当会造成Crash错误，比如没有在dealloc中removeObserver，或者在分线程中进行接收、发送通知等等。
+
+注：在iOS 9.0 或 macOS 10.11 以后，不需要在dealloc中调用removeObserver方法了,见官方文档
+
+1234If your app targets iOS 9.0 and later or m">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2018/08/30/NSNotificationCenter防Crash守护/"/>
+
+  <title> NSNotificationCenter防Crash守护 | Jianless的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Jianless的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NSNotificationCenter防Crash守护
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-08-30T15:08:47+08:00" content="2018-08-30">
+              2018-08-30
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/08/30/NSNotificationCenter防Crash守护/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/08/30/NSNotificationCenter防Crash守护/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/08/30/NSNotificationCenter防Crash守护/" class="leancloud_visitors" data-flag-title="NSNotificationCenter防Crash守护">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>对于NSNotificationCenter，使用不当会造成Crash错误，比如没有在dealloc中removeObserver，或者在分线程中进行接收、发送通知等等。</p>
+<ul>
+<li>注：在iOS 9.0 或 macOS 10.11 以后，不需要在dealloc中调用removeObserver方法了,见<a href="https://developer.apple.com/documentation/foundation/nsnotificationcenter/1413994-removeobserver?language=objc" target="_blank" rel="external">官方文档</a></li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">If your app targets iOS 9.0 and later or macOS 10.11 and later, you don&apos;t need to unregister an observer</div><div class="line"> in its dealloc method. Otherwise, you should call this method or removeObserver:name:object: before </div><div class="line"> observer or any object specified in addObserverForName:object:queue:usingBlock: or </div><div class="line"> addObserver:selector:name:object: is deallocated.</div></pre></td></tr></table></figure>
+<p>当向通知中心注册的时候，NSNotificationCenter不会对observer强引用，在iOS 9.0以前，会持有一个<code>__unsafe_unretained</code>的指针，假如observer释放了，指针不会置为nil，变成不安全的指针。而在iOS 9.0及以后，使用<code>weak</code>修饰指针，解决了这个问题。详细见<a href="https://developer.apple.com/library/archive/releasenotes/Foundation/RN-FoundationOlderNotes/index.html#X10_11Notes" target="_blank" rel="external">官方更新说明</a>中关于NSNotificationCenter部分。</p>
+<p>虽然不用移除了。但是探讨如何在dealloc方法中实现自动removeObserver还是有好处的。</p>
+<h3 id="Swillze-dealloc-方法"><a href="#Swillze-dealloc-方法" class="headerlink" title="Swillze dealloc 方法"></a>Swillze dealloc 方法</h3><p>既然需要在dealloc方法中调用removeObserver方法，那么我们Swillze dealloc不就好了吗，在交换的dealloc方法里调用removeObserver。那么又有了一个问题，我们hook的dealloc方法是所有对象的dealloc，即所有对象的dealloc方法都会走我们自己的交换方法，怎么判定这个对象被注册到通知中心了呢？</p>
+<p>所以，也需要hook <code>- (void)addObserver:(id)observer selector:(SEL)aSelector name:(nullable NSNotificationName)aName object:(nullable id)anObject</code> 这个方法，在hook方法里使用Rumtime AssociatedObject为observer添加一个标记。然后在自己的dealloc方法里通过判断是否有标记，来移除observer。</p>
+<p>分析：<br>dealloc方法算是在整个项目里调用最频繁的方法之一了，hook dealloc方法感觉有点得不偿失，对性能有点影响。所以，我对这个 Swillze dealloc方法没有具体写代码去实现。</p>
+<h3 id="AssociatedObject-Weak"><a href="#AssociatedObject-Weak" class="headerlink" title="AssociatedObject + Weak"></a>AssociatedObject + Weak</h3><p>我们先来看看dealloc底层都实现了什么？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">void *objc_destructInstance(id obj) </div><div class="line">&#123;</div><div class="line">    if (obj) &#123;</div><div class="line">        // Read all of the flags at once for performance.</div><div class="line">        bool cxx = obj-&gt;hasCxxDtor();</div><div class="line">        bool assoc = obj-&gt;hasAssociatedObjects();</div><div class="line"></div><div class="line">        // This order is important.</div><div class="line">        if (cxx) object_cxxDestruct(obj);</div><div class="line">        if (assoc) _object_remove_assocations(obj);</div><div class="line">        obj-&gt;clearDeallocating();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    return obj;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其中有重要的两步，就是释放关联对象及弱引用，这个自动removeObserver就是用这两个知识点实现的。</p>
+<p>当向通知中心注册的时候，用AssociatedObject为observer添加一个属性标记，这里使用的是分类的方式添加的，对NSObject添加一个分类，在分类里添加一个属性：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">@interface NSObject (Tag)</div><div class="line">@property (nonatomic, strong) ZJNotificationTag *tag;</div><div class="line">@end</div><div class="line"></div><div class="line">static void *NSObject_ZJTag_Key = &amp;NSObject_ZJTag_Key;</div><div class="line"></div><div class="line">@implementation NSObject (ZJTag)</div><div class="line"></div><div class="line">- (void)setTag:(ZJNotificationTag *)tag &#123;</div><div class="line">    objc_setAssociatedObject(self, NSObject_ZJTag_Key, tag, OBJC_ASSOCIATION_RETAIN_NONATOMIC);</div><div class="line">&#125;</div><div class="line"></div><div class="line">-(ZJNotificationTag *)tag &#123;</div><div class="line">    return (ZJNotificationTag *)objc_getAssociatedObject(self, NSObject_ZJTag_Key);</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>ZJNotificationTag是自定义的，继承自NSObject的子类，持有observer的弱引用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">@interface ZJNotificationTag: NSObject</div><div class="line">@property (nonatomic, weak) id observer;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZJNotificationTag</div><div class="line"></div><div class="line">- (void)setObserver:(id)observer &#123;</div><div class="line">    _observer = observer;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)dealloc &#123;</div><div class="line">    [[NSNotificationCenter defaultCenter] removeObserver:self.observer];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>思路就是当observer释放，即dealloc的时候，dealloc内部会清除与之相关联的对象，即上述代码中的<code>tag</code>对象，而tag对象弱引用observer，所以不会产生循环引用，所以在tag对象的dealloc方法里，通过<code>tag.observer</code>得到了observer对象，从而将observer对象从通知中心移除。</p>
+<p>下面简述一下实现过程中遇到的问题：</p>
+<h4 id="保证observer对象只调用一次remove方法"><a href="#保证observer对象只调用一次remove方法" class="headerlink" title="保证observer对象只调用一次remove方法"></a>保证observer对象只调用一次remove方法</h4><p>假如在ViewController里同时注册多个不同通知，那么在dealloc里也只需移除一次。所以在添加标记时，先判断一下是否已经添加了标记：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">NSObject *_observer = (NSObject *)observer;</div><div class="line">if(!_observer.tag)&#123;</div><div class="line">    ZJNotificationTag *tag = [[ZJNotificationTag alloc] init];</div><div class="line">    _observer.tag = tag;</div><div class="line">    tag.observer = _observer;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="保证不会重复注册observer"><a href="#保证不会重复注册observer" class="headerlink" title="保证不会重复注册observer"></a>保证不会重复注册observer</h4><p>对于同一个通知，即<code>NSNotificationName</code>相同的通知，如果重复注册，就会重复收到回调方法，在这里我维护了一个NSMutableDictionary，来处理这种由于不小心可能造成的bug：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">NSMutableDictionary &lt;NSString*, NSHashTable*&gt;*_dic;</div></pre></td></tr></table></figure>
+<p>key为<code>NSNotificationName</code>，value为<code>NSHashTable</code>，即能实现对内部对象弱引用的Set，当addObserver时先判断是否已经存在了，如果存在，即证明已经注册过了，直接返回，不再调用addObserver方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">NSHashTable *hashTable = [_dic objectForKey:name];</div><div class="line">if(!hashTable) &#123;</div><div class="line">    hashTable = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory];</div><div class="line">    [self _addObserver:observer selector:selector name:name object:object hashTable:hashTable];</div><div class="line">&#125;</div><div class="line">else &#123;</div><div class="line">    if(![hashTable containsObject:observer]) &#123;</div><div class="line">        [self _addObserver:observer selector:selector name:name object:object hashTable:hashTable];</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">[_dic setObject:hashTable forKey:name];</div></pre></td></tr></table></figure>
+<h4 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h4><p>注册observer、添加标记、添加对象到hashTable等操作方法都加了锁，保证线程安全</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">pthread_mutex_init(&amp;_lock, NULL);</div><div class="line"></div><div class="line">pthread_mutex_lock(&amp;_lock);</div><div class="line"></div><div class="line">pthread_mutex_unlock(&amp;_lock);</div></pre></td></tr></table></figure>
+<p>在发送通知时，为了防止多线程可能引起的问题，在这里统一在主线程发出通知，这样的话，就保证了接收通知时一定在主线程，见<a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Notifications/Articles/NotificationCenters.html#//apple_ref/doc/uid/20000216-111349" target="_blank" rel="external">官方文档</a>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">In a multithreaded application, notifications are always delivered in the thread in which the </div><div class="line">notification was posted, which may not be the same thread in which an observer registered itself.</div></pre></td></tr></table></figure>
+<p>借鉴了SDWebImage的做法(站在巨人的肩膀上😝)：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">- (void)postNotificationName:(NSString *)name object:(id)object &#123;</div><div class="line">    </div><div class="line">    dispatch_main_async_safe(^&#123;</div><div class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:name object:object];</div><div class="line">    &#125;);</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h4><p>在ViewController中添加监听的时候：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[[ZJNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveNotification) name:@&quot;TestNotificationName&quot; object:nil];</div></pre></td></tr></table></figure>
+<p>发送通知的时候：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[[ZJNotificationCenter defaultCenter] postNotificationName:@&quot;TestNotificationName&quot; object:nil];</div></pre></td></tr></table></figure>
+<p>本文研究如何实现自动removeObserver，只是想到了这一个思路，文中的代码并未在正式环境中使用，如果错误，请指正。</p>
+<p>代码已传至<a href="https://github.com/coderZhou10496/NotificationDemo" target="_blank" rel="external">Github</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/02/YYCache中的细节/" rel="next" title="YYCache中的细节">
+                <i class="fa fa-chevron-left"></i> YYCache中的细节
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2018/08/30/NSNotificationCenter防Crash守护/"
+           data-title="NSNotificationCenter防Crash守护" data-url="http://coderzhou.com/2018/08/30/NSNotificationCenter防Crash守护/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">23</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Swillze-dealloc-方法"><span class="nav-number">1.</span> <span class="nav-text">Swillze dealloc 方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AssociatedObject-Weak"><span class="nav-number">2.</span> <span class="nav-text">AssociatedObject + Weak</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#保证observer对象只调用一次remove方法"><span class="nav-number">2.1.</span> <span class="nav-text">保证observer对象只调用一次remove方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#保证不会重复注册observer"><span class="nav-number">2.2.</span> <span class="nav-text">保证不会重复注册observer</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#线程安全"><span class="nav-number">2.3.</span> <span class="nav-text">线程安全</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用方法"><span class="nav-number">2.4.</span> <span class="nav-text">使用方法</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>
