@@ -235,6 +235,185 @@
             
               
                 
+                <a class="post-title-link" href="/2017/12/05/关于AFURLSessionManager的几点疑问/" itemprop="url">
+                  关于AFURLSessionManager的几点疑问
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-12-05T19:16:30+08:00" content="2017-12-05">
+              2017-12-05
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/12/05/关于AFURLSessionManager的几点疑问/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/05/关于AFURLSessionManager的几点疑问/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/12/05/关于AFURLSessionManager的几点疑问/" class="leancloud_visitors" data-flag-title="关于AFURLSessionManager的几点疑问">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>这两天花了点时间看了下<a href="https://github.com/AFNetworking/AFNetworking" target="_blank" rel="external">AFNetworking</a>的源码，特别是对于 <code>AFURLSessionManager</code> 这个核心类研究的比较多，其中有几个疑问，所以写篇文章来记录下</p>
+<h3 id="关于AFURLSessionManager的内存泄露"><a href="#关于AFURLSessionManager的内存泄露" class="headerlink" title="关于AFURLSessionManager的内存泄露"></a>关于AFURLSessionManager的内存泄露</h3><p>这个问题在<a href="https://github.com/AFNetworking/AFNetworking/issues" target="_blank" rel="external">issues</a>上被多次提到，就是说仅仅是写个简单的请求，也会出现内存泄露的问题。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc]init];</div><div class="line">[manager POST:urlStringparameters:paraDic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line">        </div><div class="line">    &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line">        </div><div class="line">    &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">        </div><div class="line">    &#125;];</div></pre></td></tr></table></figure>
+<p>当我们在 UIViewController 写上这段代码，因为 AFHTTPSessionManager 不是全局的类，不是单利类，理论上来说，当退出当前 UIViewController 时，AFHTTPSessionManager 类的 dealloc 方法应该执行，然后事实上却没有。</p>
+<p>使用Instruments分析为：<br><img src="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager01.png" alt="image"></p>
+<p>意思就是 AFURLSessionManager 持有了 NSURLSession 对象，并且 NSURLSession 的delegate 对象 为AFURLSessionManager，造成了循环引用。其实就是这行代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">self.session = [NSURLSession sessionWithConfiguration:self.sessionConfiguration </div><div class="line">delegate:self delegateQueue:self.operationQueue];</div></pre></td></tr></table></figure>
+<p>为什么会出现这个问题呢？我们来看下苹果开发文档对于这个方法的描述</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">The session object keeps a strong reference to the delegate until your app</div><div class="line"> exits or explicitly invalidates the session. If you do not invalidate the </div><div class="line"> session by calling the invalidateAndCancel or finishTasksAndInvalidate </div><div class="line"> method, your app leaks memory until it exits.</div></pre></td></tr></table></figure>
+<p>果然如此，NSURLSession 对象会强引用传入的 delegate 对象直到APP退出或者手动调用方法使 session 失效，否则会出现内存泄露的问题。</p>
+<p>其实解决这个内存泄露的方法也很简单，官方文档也说了，手动使其失效。我们在 block 回调里调用一下 <code>invalidateAndCancel</code> 就行了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">[manager POST:urlString parameters:dic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line"></div><div class="line">        </div><div class="line">        &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line"></div><div class="line">            [manager.session invalidateAndCancel];</div><div class="line">        &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">            [manager.session invalidateAndCancel];</div><div class="line">        &#125;];</div></pre></td></tr></table></figure>
+<p>但是 AFNetworking 的作者为什么没有这么做呢，而是任其内存泄露？我猜测可能是当一个界面存在多个网络请求时，我们用 manager 去请求，假如在一个请求回调里调用 <code>[manager.session invalidateAndCancel]</code> 方法，那么就使其他的请求终止了，故而发生错误。并且我们在页面下拉刷新时，由于 manager.session 已失效，也会出现错误。</p>
+<h3 id="为什么在block回调里可以写-self-访问属性"><a href="#为什么在block回调里可以写-self-访问属性" class="headerlink" title="为什么在block回调里可以写 self. 访问属性"></a>为什么在block回调里可以写 <code>self.</code> 访问属性</h3><p>比如这样写当前 UIViewController 仍能释放：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong)AFHTTPSessionManager *manager;</div><div class="line"></div><div class="line">self.manager = [[AFHTTPSessionManager alloc]init];</div><div class="line">[manager POST:urlString parameters:dic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line">    &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line"></div><div class="line">        self.XX = XX</div><div class="line">        </div><div class="line">    &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">    &#125;];</div></pre></td></tr></table></figure>
+<p>这里Controller对象是强引用了manager，block强引用了Controller，那么manager强引用了block了吗？肯定是没有的，我们来看下</p>
+<p>AFHTTPSessionManager有个字典属性:mutableTaskDelegatesKeyedByTaskIdentifier：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (readwrite, nonatomic, strong) NSMutableDictionary *mutableTaskDelegatesKeyedByTaskIdentifier;</div></pre></td></tr></table></figure>
+<p>字典里面放的是，key是NSURLSessionTask的唯一标识，value是AFURLSessionManagerTaskDelegate对象。</p>
+<p>AFURLSessionManagerTaskDelegate这个类强引用了 AFURLSessionManager 对象</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong) AFURLSessionManager *manager;</div></pre></td></tr></table></figure>
+<p>1.UIViewController对象      持有    AFHTTPSessionManager对象</p>
+<p>2.AFHTTPSessionManager对象  持有    字典</p>
+<p>3.字典                          持有    AF…TaskDelegate对象</p>
+<p>4.AF…TaskDelegate对象     持有    AFHTTPSessionManager对象(weak) </p>
+<p>5.AF…TaskDelegate对象     持有    completionHandler(回调的block)</p>
+<p>6.completionHandler        持有    UIViewController对象</p>
+<p>看着很乱，还是看图吧</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager03.png" alt="image"></p>
+<p>那么AFNetworking是怎么处理的呢，怎么打破这种循环引用呢。</p>
+<p>看下这个代理方法，这个方法是请求完成后调用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">              task:(NSURLSessionTask *)task</div><div class="line">didCompleteWithError:(NSError *)error &#123;</div><div class="line"></div><div class="line"> [self removeDelegateForTask:task];</div><div class="line"> </div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)removeDelegateForTask:(NSURLSessionTask *)task &#123;</div><div class="line">    NSParameterAssert(task);</div><div class="line">    AFURLSessionManagerTaskDelegate *delegate = [self delegateForTask:task];</div><div class="line">    [self.lock lock];</div><div class="line">    [delegate cleanUpProgressForTask:task];</div><div class="line">    [self removeNotificationObserverForTask:task];</div><div class="line">    [self.mutableTaskDelegatesKeyedByTaskIdentifier removeObjectForKey:@(task.taskIdentifier)];</div><div class="line">    [self.lock unlock];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在这个回调方法里，把 AFURLSessionManagerTaskDelegate 对象从字典中移除了，就是说字典不再持有 AFURLSessionManagerTaskDelegate 对象，所以就不存在强引用了问题了。</p>
+<h3 id="关于文件下载的操作"><a href="#关于文件下载的操作" class="headerlink" title="关于文件下载的操作"></a>关于文件下载的操作</h3><p>我们来看下 <code>NSURLSessionDownloadDelegate</code> 的这个方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">      downloadTask:(NSURLSessionDownloadTask *)downloadTask</div><div class="line">didFinishDownloadingToURL:(NSURL *)location</div><div class="line">&#123;</div><div class="line">    AFURLSessionManagerTaskDelegate *delegate = [self delegateForTask:downloadTask];</div><div class="line">    if (self.downloadTaskDidFinishDownloading) &#123;</div><div class="line">        //调用自定义的block拿到文件存储的地址</div><div class="line">        NSURL *fileURL = self.downloadTaskDidFinishDownloading(session, downloadTask, location);</div><div class="line">        if (fileURL) &#123;</div><div class="line">            delegate.downloadFileURL = fileURL;</div><div class="line">            NSError *error = nil;</div><div class="line">            //location是临时路径，我们把数据从临时的下载路径移动至我们需要的路径</div><div class="line">            [[NSFileManager defaultManager] moveItemAtURL:location toURL:fileURL error:&amp;error];</div><div class="line">             //如果出错</div><div class="line">            if (error) &#123;</div><div class="line">                [[NSNotificationCenter defaultCenter] postNotificationName:AFURLSessionDownloadTaskDidFailToMoveFileNotification object:downloadTask userInfo:error.userInfo];</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            return;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">     //转发代理</div><div class="line">    if (delegate) &#123;</div><div class="line">        [delegate URLSession:session downloadTask:downloadTask didFinishDownloadingToURL:location];</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个方法我下载文件完成的时候调用。如果设置了 <code>downloadTaskDidFinishDownloadingBlock</code>，就去操作数据，把数据从临时的下载路径移动至我们需要的路径，然后 return，意思就是直接返回，不再执行。</p>
+<p>如果没有设置block，就把这个代理转发到 AFURLSessionManagerTaskDelegate 自定义的代理里面。在自定义代理里做了同样的操作：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">      downloadTask:(NSURLSessionDownloadTask *)downloadTask</div><div class="line">didFinishDownloadingToURL:(NSURL *)location</div><div class="line">&#123;</div><div class="line">    NSError *fileManagerError = nil;</div><div class="line">    self.downloadFileURL = nil;</div><div class="line"></div><div class="line">    //AF代理的自定义Block</div><div class="line">    if (self.downloadTaskDidFinishDownloading) &#123;</div><div class="line">        //得到自定义下载路径</div><div class="line">        self.downloadFileURL = self.downloadTaskDidFinishDownloading(session, downloadTask, location);</div><div class="line">        if (self.downloadFileURL) &#123;</div><div class="line">            //把下载路径移动到我们自定义的下载路径</div><div class="line">            [[NSFileManager defaultManager] moveItemAtURL:location toURL:self.downloadFileURL error:&amp;fileManagerError];</div><div class="line"></div><div class="line">            //错误发通知</div><div class="line">            if (fileManagerError) &#123;</div><div class="line">                [[NSNotificationCenter defaultCenter] postNotificationName:AFURLSessionDownloadTaskDidFailToMoveFileNotification object:downloadTask userInfo:fileManagerError.userInfo];</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>即：如果设置了 <code>downloadTaskDidFinishDownloadingBlock</code>，就去操作数据，把数据从临时的下载路径移动至我们需要的路径。这一步骤跟<code>NSURLSessionDownloadDelegate</code> 里的方法完全一样。并且，如果设置了block，操作文件后直接return了，不会再转发代理了。如果没设置block，转发代理后，在自己的代理方法里又判断了是否设置了block。</p>
+<p>这个转发代理的步骤看起来多余了，AF的作者为什么这样做，让我不得解，难道还有其他的用处？</p>
+<h3 id="其他的一些疑问"><a href="#其他的一些疑问" class="headerlink" title="其他的一些疑问"></a>其他的一些疑问</h3><p>1.当 AFURLSessionManagerTaskDelegate 这个类把 AFURLSessionManager 对象作为属性的时候用的是 weak</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, weak) AFURLSessionManager *manager;</div></pre></td></tr></table></figure>
+<p>在自定义的代理方法里，因为这个属性是weak，所以进行了下面这一步</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(__unused NSURLSession *)session</div><div class="line">              task:(NSURLSessionTask *)task</div><div class="line">didCompleteWithError:(NSError *)error</div><div class="line">&#123;</div><div class="line">	......</div><div class="line">    //强引用self.manager，防止被提前释放；因为self.manager声明为weak</div><div class="line">    __strong AFURLSessionManager *manager = self.manager;</div><div class="line">    .......</div><div class="line"> &#125;</div></pre></td></tr></table></figure>
+<p>关于这个 weak 属性，我看了下，即使换成 strong 也不会出现内存泄露的问题，因为请求完成后 AFURLSessionManager 把 AFURLSessionManagerTaskDelegate 对象从字典中移除了。并且在上面的这个方法里，也不用多去操作一步。有点不明白，为什么用weak。</p>
+<p>2.AFURLSessionManagerTaskDelegate 这个类在声明的时候同样遵循了 <code>NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionDownloadDelegate协议</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface AFURLSessionManagerTaskDelegate : NSObject &lt;NSURLSessionTaskDelegate, </div><div class="line">NSURLSessionDataDelegate, </div><div class="line">NSURLSessionDownloadDelegate&gt;</div></pre></td></tr></table></figure>
+<p>这里不遵循协议一样是可以的。可能是作者为了使这个类更规范一些，更像官方文档那样，所以这样写</p>
+<p>3.在创建 NSURLSession 对象时，指定了回调代理的queque</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">self.operationQueue.maxConcurrentOperationCount = 1;</div><div class="line">self.session = [NSURLSession sessionWithConfiguration:self.sessionConfiguration </div><div class="line">delegate:self delegateQueue:self.operationQueue];</div></pre></td></tr></table></figure>
+<p>这里我注意到了，设置了queue的最大operation并发个数为1，实现似于串行队列的效果。难道是作者为了节省内存资源这样做的，因为即使设置了并发个数为1，NSOperation也是可以同时执行多个任务的。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2017/11/12/一次由performSelector引发的BUG/" itemprop="url">
                   一次由performSelector引发的BUG
                 </a>
@@ -1854,172 +2033,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/08/22/iOS事件的传递与响应/" itemprop="url">
-                  iOS事件的传递与响应
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-22T15:19:03+08:00" content="2016-08-22">
-              2016-08-22
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/分类/技术/" itemprop="url" rel="index">
-                    <span itemprop="name">技术</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2016/08/22/iOS事件的传递与响应/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/22/iOS事件的传递与响应/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/08/22/iOS事件的传递与响应/" class="leancloud_visitors" data-flag-title="iOS事件的传递与响应">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>在iOS中，能够响应事件的对象都是UIResponder的子类对象。UIResponder提供了四个用户点击的回调方法，分别对应用户点击开始、移动、点击结束以及取消点击。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">- (void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(nullable UIEvent *)event;</div><div class="line">- (void)touchesMoved:(NSSet&lt;UITouch *&gt; *)touches withEvent:(nullable UIEvent *)event;</div><div class="line">- (void)touchesEnded:(NSSet&lt;UITouch *&gt; *)touches withEvent:(nullable UIEvent *)event;</div><div class="line">- (void)touchesCancelled:(nullable NSSet&lt;UITouch *&gt; *)touches withEvent:(nullable UIEvent *)event;</div></pre></td></tr></table></figure>
-<p>点击一个 UIView 或产生一个触摸事件，首先接收事件的是 UIApplication，UIApplication 把这个事件添加到管理的事件队列中，那么这个事件是怎么找到合适的 view 去处理事件呢？</p>
-<h3 id="一、事件的传递"><a href="#一、事件的传递" class="headerlink" title="一、事件的传递"></a>一、事件的传递</h3><p>UIView 是如何判定这个事件是否是自己应该处理的呢？iOS 系统检测到一个触摸操作时会打包一个UIEvent 对象，并放入 Application 的队列，Application 从队列中取出事件后交给 UIWindow 来处理，UIWindow 会使用 hitTest:withEvent: 方法来递归的寻找操作初始点所在的 view，这个过程成为 hit-test view。</p>
-<ol>
-<li><p>调用当前 view 的 pointInside:withEvent: 方法来判定触摸点是否在当前view内部</p>
-</li>
-<li><p>如果返回 NO,则 hitTest:withEvent: 返回 nil，如果返回 YES,向当前 view 内的subViews 发送 hitTest:withEvent: 消息</p>
-</li>
-<li><p>如此循环遍历子控件，直到找到最合适的 view，如果没有更合适的子控件，那么自己就成为最合适的 view。</p>
-</li>
-</ol>
-<p>注意，当 view 的 userInteractionEnabled = NO 或 view.hidden = YES 或 view 为透明，是不能接收触摸事件的，如果父控件不能接收触摸事件，那么子控件也不能收到触摸事件。<br>遍历子控件的顺序，是从最层级从高到低的顺序，即最顶层的 SubView 开始遍历，一旦有视图可以接收此次事件，就不会再往下遍历。下面通过代码来验证一下：</p>
-<p>新建一个类，MyView，继承自 UIView,定义一个属性 name;</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface MyView : UIView</div><div class="line">@property (nonatomic,copy)NSString *name;</div><div class="line">@end</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">#import &quot;MyView.h&quot;</div><div class="line"></div><div class="line">@implementation MyView</div><div class="line"></div><div class="line">- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;hitTest %@ 进入 event=%p&quot;, self.name, event);</div><div class="line">    UIView *view =  [super hitTest:point withEvent:event];</div><div class="line">    NSLog(@&quot;hitTest %@ 退出 event=%p&quot;, self.name, event);</div><div class="line">    return view;</div><div class="line">    </div><div class="line">&#125;</div><div class="line">- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event</div><div class="line">&#123;</div><div class="line">    BOOL ret = [super pointInside:point withEvent:event];</div><div class="line">    if (ret) &#123;</div><div class="line">        NSLog(@&quot;pointInside %@ = YES&quot;, self.name);</div><div class="line">    &#125; else &#123;</div><div class="line">        NSLog(@&quot;pointInside %@ = NO&quot;, self.name);</div><div class="line">    &#125;</div><div class="line">    return ret;</div><div class="line">&#125;</div><div class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;处理事件的view为:%@&quot;,self.name);</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
-<p>在 ViewController 中分别实例化 MyView 的对象,superView，viewA,viewB,viewC,viewD</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line">MyView *superView = [[MyView alloc] initWithFrame:CGRectMake(50, 100, 250, 450)];</div><div class="line">superView.name = @&quot;superView&quot;;</div><div class="line">superView.backgroundColor = [UIColor grayColor];</div><div class="line">[self.view addSubview:superView];</div><div class="line"></div><div class="line">MyView *viewA =[[MyView alloc] initWithFrame:CGRectMake(25, 80, 200, 100)];</div><div class="line">viewA.name = @&quot;viewA&quot;;</div><div class="line">viewA.backgroundColor = [UIColor cyanColor];</div><div class="line">[superView addSubview:viewA];</div><div class="line"></div><div class="line">MyView *viewB =[[MyView alloc] initWithFrame:CGRectMake(25, 200, 200, 220)];</div><div class="line">viewB.name = @&quot;viewB&quot;;</div><div class="line">viewB.backgroundColor = [UIColor orangeColor];</div><div class="line">[superView addSubview:viewB];</div><div class="line"></div><div class="line">MyView *viewC =[[MyView alloc] initWithFrame:CGRectMake(25, 40, 150, 80)];</div><div class="line">viewC.name = @&quot;viewC&quot;;</div><div class="line">viewC.backgroundColor = [UIColor blueColor];</div><div class="line">[viewB addSubview:viewC];</div><div class="line"></div><div class="line">MyView *viewD =[[MyView alloc] initWithFrame:CGRectMake(25, 130, 150, 80)];</div><div class="line">viewD.name = @&quot;viewD&quot;;</div><div class="line">viewD.backgroundColor = [UIColor greenColor];</div><div class="line">[viewB addSubview:viewD];</div></pre></td></tr></table></figure>
-<p>viewA 和 viewB 为 superView 的子视图，viewC 和 viewD 为 viewB 的子视图,运行后，视图为：</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/hitTest.png" alt="image"></p>
-<p>当我点击 viewC 时，控制台输出为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">2016-08-22 17:46:15.273 EventDemo[3268:357205] hitTest superView 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.274 EventDemo[3268:357205] pointInside superView = YES</div><div class="line">2016-08-22 17:46:15.274 EventDemo[3268:357205] hitTest viewB 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.274 EventDemo[3268:357205] pointInside viewB = YES</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewD 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] pointInside viewD = NO</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewD 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewC 进入 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] pointInside viewC = YES</div><div class="line">2016-08-22 17:46:15.275 EventDemo[3268:357205] hitTest viewC 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.276 EventDemo[3268:357205] hitTest viewB 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.276 EventDemo[3268:357205] hitTest superView 退出 event=0x7ffe8ad08dc0</div><div class="line">2016-08-22 17:46:15.279 EventDemo[3268:357205] 处理事件的view为:viewC</div></pre></td></tr></table></figure>
-<p>由控制台输出可以看出，的确是一层一层遍历子视图，最后找到处理视图 viewC。这里为什么没有遍历 viewA 呢，正如上面所说的，遍历顺序是从 superView 的最上层子视图，即 viewB 开始的。viewC 和 viewD 作为 viewB 的子视图，viewD 后添加到 viewB 上，先遍历 viewD 。</p>
-<h3 id="二、事件的响应"><a href="#二、事件的响应" class="headerlink" title="二、事件的响应"></a>二、事件的响应</h3><p>先看下官方给的图：</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/hitappleaggin.png" alt="image"></p>
-<ol>
-<li><p>事件顺着responder chain传递，如果一环不处理，则传递到下一环</p>
-</li>
-<li><p>view 的下一级是包含它的 viewController，如果没有 viewController 则是它的 superView</p>
-</li>
-<li><p>viewController 的下一级是它的 view 的 superView</p>
-</li>
-<li><p>view 之后是 window，最后传给 application，如果都没有处理，最后回到UIApplication，再不处理就会抛弃</p>
-</li>
-</ol>
-<h6 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h6><p>1、当一个事件发生后，事件会从父控件传给子控件，也就是说由UIApplication -&gt; UIWindow -&gt; UIView -&gt; initial view,以上就是事件的传递，也就是寻找最合适的view的过程。</p>
-<p>2、事件的响应，首先看initial view能否处理这个事件，如果不能则会将事件传递给其上级视图；如果上级视图仍然无法处理则会继续传递；一直到 window，如果window还是不能处理此事件则继续交给application处理，如果最后application还是不能处理此事件则将其丢弃</p>
-<p>3、在事件的响应中，如果某个控件实现了touches…方法，则这个事件将由该控件来接受，如果调用了[supertouches….];就会将事件顺着响应者链条往上传递，传递给上一个响应者；接着就会调用上一个响应者的touches….方法。</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -2057,7 +2070,7 @@
       <section class="site-overview sidebar-panel  sidebar-panel-active ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
-               src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
                alt="Zhou Jian" />
           <p class="site-author-name" itemprop="name">Zhou Jian</p>
           <p class="site-description motion-element" itemprop="description"></p>
@@ -2065,7 +2078,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

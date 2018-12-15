@@ -235,6 +235,180 @@
             
               
                 
+                <a class="post-title-link" href="/2018/12/15/MLeaksFinder与FBRetainCycleDetector小结/" itemprop="url">
+                  MLeaksFinder与FBRetainCycleDetector小结
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-12-15T19:54:38+08:00" content="2018-12-15">
+              2018-12-15
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/12/15/MLeaksFinder与FBRetainCycleDetector小结/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/15/MLeaksFinder与FBRetainCycleDetector小结/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/12/15/MLeaksFinder与FBRetainCycleDetector小结/" class="leancloud_visitors" data-flag-title="MLeaksFinder与FBRetainCycleDetector小结">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h3 id="MLeaksFinder"><a href="#MLeaksFinder" class="headerlink" title="MLeaksFinder"></a>MLeaksFinder</h3><p>建议先仔细阅读<a href="http://wereadteam.github.io/2016/07/20/MLeaksFinder2/" target="_blank" rel="external">官方介绍</a>，很多原理性的东西原文档讲的很清楚，这里主要以几个问题来分析一下实现过程。<br>假如给你一个原理：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">在一个 ViewController 被 pop 或 dismiss 一小段时间后，看看该 </div><div class="line">UIViewController，它的 view，view 的 subviews 等等是否还存在</div></pre></td></tr></table></figure>
+<p>你能想到怎么用代码实现这个功能呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">- (BOOL)willDealloc &#123;</div><div class="line">    __weak id weakSelf = self;</div><div class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</div><div class="line">        [weakSelf assertNotDealloc];</div><div class="line">    &#125;);</div><div class="line">    return YES;</div><div class="line">&#125;</div><div class="line">- (void)assertNotDealloc &#123;</div><div class="line">     NSAssert(NO, @“”);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="如何判断一个ViewController被pop或dismiss"><a href="#如何判断一个ViewController被pop或dismiss" class="headerlink" title="如何判断一个ViewController被pop或dismiss"></a>如何判断一个ViewController被pop或dismiss</h4><p>MLeaksFinder通过Runtime hook了<code>viewDidDisappear</code> 和 <code>viewWillAppear</code>方法，但是一个界面消失时，可能是被pop或dismiss了，也有可能是push了一个新的界面，push时当前页面也会调用<code>viewDidDisappear</code>方法。我们要做的是只有被pop或dismiss时，才去监测是否内存泄漏了。MLeaksFinder做法是这样的：</p>
+<p>当<code>viewWillAppear</code>被调用时，通过<code>objc_setAssociatedObject</code>方法对ViewController添加一个标记属性值，当ViewController被pop时，获得这个ViewController并改变这个属性值。然后在<code>viewDidDisappear</code>判断一下这个属性值是否被改变了，假如改变了，则是被pop或dismiss了。见代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">- (void)swizzled_viewDidDisappear:(BOOL)animated &#123;</div><div class="line">    [self swizzled_viewDidDisappear:animated];</div><div class="line">    </div><div class="line">    BOOL value = [objc_getAssociatedObject(self, kHasBeenPoppedKey) boolValue] ;</div><div class="line">    if (value) &#123;</div><div class="line">        [self willDealloc];</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)swizzled_viewWillAppear:(BOOL)animated &#123;</div><div class="line">    [self swizzled_viewWillAppear:animated];</div><div class="line">    objc_setAssociatedObject(self, kHasBeenPoppedKey, @(NO), OBJC_ASSOCIATION_RETAIN);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">UIViewController *poppedViewController = [self swizzled_popViewControllerAnimated:animated];</div><div class="line"></div><div class="line">extern const void *const kHasBeenPoppedKey;</div><div class="line">    objc_setAssociatedObject(poppedViewController, kHasBeenPoppedKey, @(YES), OBJC_ASSOCIATION_RETAIN);</div><div class="line">    </div><div class="line">    return poppedViewController;</div></pre></td></tr></table></figure>
+<h4 id="如何构建视图层级信息"><a href="#如何构建视图层级信息" class="headerlink" title="如何构建视图层级信息"></a>如何构建视图层级信息</h4><p>假如一个ViewController的一个view没有释放，找出来这个view所属的层级。</p>
+<p>首先先检测ViewController，然后将ViewController的className记录下来，然后遍历ViewController.view的时候，将ViewController的className的赋值给view，以及对ViewController.view.subviews循环遍历,添加弱引用指针前时，都通过赋值传递的方法，先将视图信息记录下来，赋值给这个对象。<code>objc_setAssociatedObject</code>方法将当前遍历的类名string添加到Array里面。假如发生了内存泄漏，通过<code>objc_getAssociatedObject</code>方法获得Array，即记录的视图层级信息.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line">- (void)willReleaseChildren:(NSArray *)children &#123;</div><div class="line">    </div><div class="line">    NSArray *viewStack = [self viewStack];</div><div class="line">    NSSet *parentPtrs = [self parentPtrs];</div><div class="line">    // 遍历时，添加弱引用指针前，现将之前的视图信息赋值给将要检测的对象</div><div class="line">    for (id child in children) &#123;</div><div class="line">        NSString *className = NSStringFromClass([child class]);</div><div class="line">        [child setViewStack:[viewStack arrayByAddingObject:className]];</div><div class="line">        [child setParentPtrs:[parentPtrs setByAddingObject:@((uintptr_t)child)]];</div><div class="line">        [child willDealloc];</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">// 赋值视图层级信息</div><div class="line">- (NSArray *)viewStack &#123;</div><div class="line">    NSArray *viewStack = objc_getAssociatedObject(self, kViewStackKey);</div><div class="line">    if (viewStack) &#123;</div><div class="line">        return viewStack;</div><div class="line">    &#125;</div><div class="line">    NSString *className = NSStringFromClass([self class]);</div><div class="line">    return @[ className ];</div><div class="line">&#125;</div><div class="line"></div><div class="line">// 获得视图层级信息</div><div class="line">- (void)setViewStack:(NSArray *)viewStack &#123;</div><div class="line">    NSLog(@&quot;setViewStack -- %@&quot;,NSStringFromClass([self class]));</div><div class="line">    objc_setAssociatedObject(self, kViewStackKey, viewStack, OBJC_ASSOCIATION_RETAIN);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="如何判断属于释放不及时的情况"><a href="#如何判断属于释放不及时的情况" class="headerlink" title="如何判断属于释放不及时的情况"></a>如何判断属于释放不及时的情况</h4><p>原文中是这么描述的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">在第一次 pop 的时候报 Memory Leak，在之后的重复 push 并 pop 同一个 ViewController 过程中，</div><div class="line">对于同一个类不断地报 Object Deallocated 和 Memory Leak。这种情况属于释放不及时的情况。</div></pre></td></tr></table></figure>
+<p>意思就是该释放的时候没释放，但是过了一段时间，或触发了某个场景又释放了，这不算严格上的内存泄漏，属于释放不及时的情况，比如这种场景：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">- (void)push &#123;</div><div class="line">    SecViewController *controller = [[SecViewController alloc] init];</div><div class="line">    self.secController = controller;</div><div class="line">    [self.navigationController pushViewController: controller animated:YES];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从当前界面push到SecViewController界面，但是当前界面持有SecViewController对象的强引用，所以SecViewController pop时，SecViewController对象时不会释放的，只有当前界面释放了，SecViewController对象才释放。</p>
+<p>检测这种情况的方法，也是使用了<code>objc_setAssociatedObject</code>方法。当一个对象发生内存泄漏时，使用<code>objc_setAssociatedObject</code>为该对象添加一个标记对象MLeakedObjectProxy，MLeakedObjectProxy持有这个泄漏对象的弱引用，这样当泄漏的对象释放时，会清除自身关联的AssociatedObject，关联对象MLeakedObjectProxy此时释放，所以关联对象释放的时机即是内存泄漏对象delloc的时机，这个时候会弹一个Object Deallocated的alertView</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">+ (void)addLeakedObject:(id)object &#123;</div><div class="line">    NSAssert([NSThread isMainThread], @&quot;Must be in main thread.&quot;);</div><div class="line">    </div><div class="line">    MLeakedObjectProxy *proxy = [[MLeakedObjectProxy alloc] init];</div><div class="line">    proxy.object = object;</div><div class="line">    proxy.objectPtr = @((uintptr_t)object);</div><div class="line">    proxy.viewStack = [object viewStack];</div><div class="line">    static const void *const kLeakedObjectProxyKey = &amp;kLeakedObjectProxyKey;</div><div class="line">    objc_setAssociatedObject(object, kLeakedObjectProxyKey, proxy, OBJC_ASSOCIATION_RETAIN);</div><div class="line">    </div><div class="line">    [leakedObjectPtrs addObject:proxy.objectPtr];</div><div class="line">    </div><div class="line">    [MLeaksMessenger alertWithTitle:@&quot;Memory Leak&quot;</div><div class="line">                            message:[NSString stringWithFormat:@&quot;%@&quot;, proxy.viewStack]];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)dealloc &#123;</div><div class="line">    NSNumber *objectPtr = _objectPtr;</div><div class="line">    NSArray *viewStack = _viewStack;</div><div class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</div><div class="line">        [leakedObjectPtrs removeObject:objectPtr];</div><div class="line">        [MLeaksMessenger alertWithTitle:@&quot;Object Deallocated&quot;</div><div class="line">                                message:[NSString stringWithFormat:@&quot;%@&quot;, viewStack]];</div><div class="line">    &#125;);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="FBRetainCycleDetector"><a href="#FBRetainCycleDetector" class="headerlink" title="FBRetainCycleDetector"></a>FBRetainCycleDetector</h3><p>MLeaksFinder的作用是找出来没有释放的对象，但是要找出哪个对象强引用着这个未释放的对象、哪几个对象造成了循环引用，还要靠<a href="https://github.com/facebook/FBRetainCycleDetector" target="_blank" rel="external">FBRetainCycleDetector</a>。它的原理是获得要检查对象的所有强引用对象，按照深入优先搜索的方法遍历所有强引用对象，假如在遍历的过程中又遍历到了自己，表明发生了循环引用，然后输出日志。</p>
+<p><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/MLeaksFinder_Cycle.jpg" alt="循环引用"></p>
+<p>如上图，搜索过程中 object1 -&gt; object4 -&gt; object6 -&gt; object1 ，造成了循环引用，控制台会输出这些信息。</p>
+<p>FB中关于寻找一个对象的所有强引用属性，比如上图中的object1,找出它的所有strong类型的属性：object2,object3,object4以及关联对象，这个过程值得我们去深究，复习下Runtime及Block底层知识。</p>
+<p>FBRetainCycleDetector中将需要检查的类型分成了三类，分别是NSObject类型，NSTimer类型，Block类型，对每种类型分别包装成了FBObjectiveCObject，FBObjectiveCNSCFTimer，FBObjectiveCBlock。<br>判断一个对象是否是NSTimer类型非常简单：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[object_getClass(object) isSubclassOfClass:[NSTimer class]]</div></pre></td></tr></table></figure>
+<p>判断一个对象是否是Block的方法为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">static Class _BlockClass() &#123;</div><div class="line">  static dispatch_once_t onceToken;</div><div class="line">  static Class blockClass;</div><div class="line">  dispatch_once(&amp;onceToken, ^&#123;</div><div class="line">      void (^testBlock)(void) = [^&#123;&#125; copy];</div><div class="line">    blockClass = [testBlock class];</div><div class="line">    while(class_getSuperclass(blockClass) &amp;&amp; class_getSuperclass(blockClass) != [NSObject class]) &#123;</div><div class="line">      blockClass = class_getSuperclass(blockClass);</div><div class="line">    &#125;</div><div class="line">    [testBlock release];</div><div class="line">  &#125;);</div><div class="line">  return blockClass;</div><div class="line">&#125;</div><div class="line"></div><div class="line">BOOL FBObjectIsBlock(void *object) &#123;</div><div class="line">  Class blockClass = _BlockClass();</div><div class="line">  Class candidate = object_getClass((__bridge id)object);</div><div class="line">  return [candidate isSubclassOfClass:blockClass];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="获取通过关联对象方式添加的属性"><a href="#获取通过关联对象方式添加的属性" class="headerlink" title="获取通过关联对象方式添加的属性"></a>获取通过关联对象方式添加的属性</h4><p>FBObjectiveCObject，FBObjectiveCNSCFTimer，FBObjectiveCBlock这三个类有一个共同父类FBObjectiveCGraphElement，共用父类的方法<code>- (NSSet *)allRetainedObjects</code>，这个方法用来获得通过<code>objc_setAssociatedObject</code>方法添加的属性。</p>
+<p>FBRetainCycleDetector 使用了 <a href="https://github.com/facebook/fishhook" target="_blank" rel="external">fishhook</a> hook了 <code>objc_setAssociatedObject</code> 和 <code>objc_removeAssociatedObjects</code> 方法，在FBAssociationManager类里维护了一个存储关联对象信息的Map, 这样的话通过关联对象的方式添加属性，就能被捕捉到，然后操作维护的Map。这样就能获得一个对象，通过关联对象方式添加强引用属性的所有信息了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">@interface FBAssociationManager : NSObject</div><div class="line"></div><div class="line">+ (void)hook;</div><div class="line"></div><div class="line">+ (void)unhook;</div><div class="line"></div><div class="line">+ (nullable NSArray *)associationsForObject:(nullable id)object;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<h4 id="对于NSObject类型"><a href="#对于NSObject类型" class="headerlink" title="对于NSObject类型"></a>对于NSObject类型</h4><p>对于通过@property方式添加的属性，在Runtime层面来说，内部都会有一个IvarList存放着实例变量列表。有的人可能会想，不是有api：<code>class_getIvarLayout</code>、<code>class_getWeakIvarLayout</code>可以直接获得strong类型的实例变量和weak类型的实例变量吗？其实不然，ivarLayout和weakIvarLayout存放的只是强ivar和弱ivar的存储规则，并不是真正的实例变量，具体可以看<a href="https://www.jianshu.com/p/6b218d12caae" target="_blank" rel="external">这篇文章</a>。</p>
+<p>但是我们可以根据ivarLayout这个存储规则找出强ivar的所在的index,再通过<code>class_copyIvarList</code>获取所有的ivar, 这样就找出了这个对象的强ivar。有了这个强ivar后再通过<code>object_getIvar</code>获得ivar对应的值，从而达成了目的。核心代码主要在FBClassStrongLayout类里</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div></pre></td><td class="code"><pre><div class="line">static NSArray&lt;id&lt;FBObjectReference&gt;&gt; *FBGetStrongReferencesForClass(Class aCls) &#123;</div><div class="line">//    class的引用所有的引用(iVarList)，包括强引用和弱引用</div><div class="line">  NSArray&lt;id&lt;FBObjectReference&gt;&gt; *ivars = [FBGetClassReferences(aCls) filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id evaluatedObject, NSDictionary *bindings) &#123;</div><div class="line">    if ([evaluatedObject isKindOfClass:[FBIvarReference class]]) &#123;</div><div class="line">      FBIvarReference *wrapper = evaluatedObject;</div><div class="line">      return wrapper.type != FBUnknownType;</div><div class="line">    &#125;</div><div class="line">    return YES;</div><div class="line">  &#125;]];</div><div class="line"></div><div class="line">    // 获取属性为strong或copy在内存中的存储规则，结果可能为nil</div><div class="line">  const uint8_t *fullLayout = class_getIvarLayout(aCls);</div><div class="line">  if (!fullLayout) &#123;</div><div class="line">    return nil;</div><div class="line">  &#125;</div><div class="line">    NSLog(@&quot;%@ fullLayout:\n%s&quot;,NSStringFromClass(aCls),fullLayout);</div><div class="line">//获取ivar的最小index</div><div class="line">  NSUInteger minimumIndex = FBGetMinimumIvarIndex(aCls);</div><div class="line">//获取强引用的index区间。 https://www.jianshu.com/p/89ac27684693</div><div class="line">  NSIndexSet *parsedLayout = FBGetLayoutAsIndexesForDescription(minimumIndex, fullLayout);</div><div class="line"></div><div class="line">  NSArray&lt;id&lt;FBObjectReference&gt;&gt; *filteredIvars =</div><div class="line">  [ivars filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id&lt;FBObjectReference&gt; evaluatedObject,</div><div class="line">                                                                           NSDictionary *bindings) &#123;</div><div class="line">    return [parsedLayout containsIndex:[evaluatedObject indexInIvarLayout]];</div><div class="line">  &#125;]];</div><div class="line"></div><div class="line">  return filteredIvars;</div><div class="line">&#125;</div><div class="line">NSArray&lt;id&lt;FBObjectReference&gt;&gt; *FBGetObjectStrongReferences(id obj,</div><div class="line">                                                            NSMutableDictionary&lt;Class, NSArray&lt;id&lt;FBObjectReference&gt;&gt; *&gt; *layoutCache) &#123;</div><div class="line">  NSMutableArray&lt;id&lt;FBObjectReference&gt;&gt; *array = [NSMutableArray new];</div><div class="line"></div><div class="line">  __unsafe_unretained Class previousClass = nil;</div><div class="line">  __unsafe_unretained Class currentClass = object_getClass(obj);</div><div class="line"></div><div class="line">  while (previousClass != currentClass) &#123;</div><div class="line">    NSArray&lt;id&lt;FBObjectReference&gt;&gt; *ivars;</div><div class="line">    </div><div class="line">    if (layoutCache &amp;&amp; currentClass) &#123;</div><div class="line">      ivars = layoutCache[currentClass];</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    if (!ivars) &#123;</div><div class="line">      ivars = FBGetStrongReferencesForClass(currentClass);</div><div class="line">      if (layoutCache &amp;&amp; currentClass) &#123;</div><div class="line">        layoutCache[currentClass] = ivars;</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">    [array addObjectsFromArray:ivars];</div><div class="line"></div><div class="line">    previousClass = currentClass;</div><div class="line">    currentClass = class_getSuperclass(currentClass);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  return [array copy];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p> 简略流程图为：</p>
+<p><img src="http://ww1.sinaimg.cn/mw690/006OKvcNly1fy5f0i5pfzj30q80j0dgu.jpg" alt="循环引用"></p>
+<h4 id="对于Block类型"><a href="#对于Block类型" class="headerlink" title="对于Block类型"></a>对于Block类型</h4><p>首先要了解Block的结构是什么，假如引用了对象，这部分的对象存在哪里</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">struct BlockDescriptor &#123;</div><div class="line">  unsigned long int reserved;                // NULL</div><div class="line">  unsigned long int size;</div><div class="line">  // optional helper functions</div><div class="line">  void (*copy_helper)(void *dst, void *src); // IFF (1&lt;&lt;25)</div><div class="line">  void (*dispose_helper)(void *src);         // IFF (1&lt;&lt;25)</div><div class="line">  const char *signature;                     // IFF (1&lt;&lt;30)</div><div class="line">&#125;;</div><div class="line"></div><div class="line">struct BlockLiteral &#123;</div><div class="line">  void *isa;  // initialized to &amp;_NSConcreteStackBlock or &amp;_NSConcreteGlobalBlock</div><div class="line">  int flags;</div><div class="line">  int reserved;</div><div class="line">  void (*invoke)(void *, ...);</div><div class="line">  struct BlockDescriptor *descriptor;</div><div class="line">  // imported variables</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>FB中将传入的Blok强转成了BlockLiteral类型的结构体，对于BlockLiteral这个结构体进行操作。</p>
+<p>其实最重要的理解dispose_helper这个函数的功能：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">dispose_helper 向所有捕获的变量发送release消息，对弱引用不会做任何的处理</div></pre></td></tr></table></figure>
+<p>我们可以先存一份<code>dispose_helper</code>调用之前的数据，然后调用<code>dispose_helper</code>函数，对比调用后的数据，就能得出所强引用的函数。<br>FBBlockStrongRelationDetector 为<code>dispose_helper</code>的消息接收类，复写了release函数。它的实例在接受release消息时，并不会真正的释放，只会将标记_strong 为YES，<br>只有真正执行<code>trueRelease</code> 的时候才会向对象发送 release 消息。更多详细的信息见<a href="https://github.com/draveness/analyze/blob/master/contents/FBRetainCycleDetector/iOS%20中的%20block%20是如何持有对象的.md" target="_blank" rel="external">这篇文章</a>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">- (oneway void)release</div><div class="line">&#123;</div><div class="line">  _strong = YES;</div><div class="line">&#125;</div><div class="line">- (oneway void)trueRelease</div><div class="line">&#123;</div><div class="line">  [super release];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>_GetBlockStrongLayout</code>核心代码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line">//    获得dispose_helper函数</div><div class="line">  void (*dispose_helper)(void *src) = blockLiteral-&gt;descriptor-&gt;dispose_helper;</div><div class="line">  const size_t ptrSize = sizeof(void *);</div><div class="line"></div><div class="line">  // Figure out the number of pointers it takes to fill out the object, rounding up.</div><div class="line">//    获取 block 持有的指针的数量</div><div class="line">  const size_t elements = (blockLiteral-&gt;descriptor-&gt;size + ptrSize - 1) / ptrSize;</div><div class="line"></div><div class="line">  // Create a fake object of the appropriate length.</div><div class="line">  void *obj[elements];</div><div class="line">  void *detectors[elements];</div><div class="line"></div><div class="line">  for (size_t i = 0; i &lt; elements; ++i) &#123;</div><div class="line">    FBBlockStrongRelationDetector *detector = [FBBlockStrongRelationDetector new];</div><div class="line">    obj[i] = detectors[i] = detector;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  @autoreleasepool &#123;</div><div class="line">    dispose_helper(obj);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  // Run through the release detectors and add each one that got released to the object&apos;s</div><div class="line">  // strong ivar layout.</div><div class="line">  NSMutableIndexSet *layout = [NSMutableIndexSet indexSet];</div><div class="line"></div><div class="line">  for (size_t i = 0; i &lt; elements; ++i) &#123;</div><div class="line">    FBBlockStrongRelationDetector *detector = (FBBlockStrongRelationDetector *)(detectors[i]);</div><div class="line">    if (detector.isStrong) &#123;</div><div class="line">      [layout addIndex:i];</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    // Destroy detectors</div><div class="line">    [detector trueRelease];</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  return layout;</div></pre></td></tr></table></figure>
+<h4 id="对于NSTimer类型"><a href="#对于NSTimer类型" class="headerlink" title="对于NSTimer类型"></a>对于NSTimer类型</h4><p>通过<code>CFRunLoopTimerGetContext</code>获得timer的详细信息，包括target</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">_FBNSCFTimerInfoStruct infoStruct = *(_FBNSCFTimerInfoStruct *)(context.info);</div><div class="line"></div><div class="line">typedef struct &#123;</div><div class="line">  long _unknown; // This is always 1</div><div class="line">  id target;</div><div class="line">  SEL selector;</div><div class="line">  NSDictionary *userInfo;</div><div class="line">&#125; _FBNSCFTimerInfoStruct;</div></pre></td></tr></table></figure>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>阅读优秀的开源框架能够学习很深层次的知识点，以及如何正确使用这些知识。比如MLeaksFinder中大量使用了<code>objc_setAssociatedObject</code>来实现想要的功能。再比如即使我们知道了Block的数据结构，那么能用这些知识来实现什么功能呢，FBRetainCycleDetector中使用了Block中的<code>dispose_helper</code>函数来筛选引用到的对象，使用了fishhook来hook Runtime层面的api。你知道了消息转发的过程和原理，假如你去阅读<a href="https://github.com/steipete/Aspects" target="_blank" rel="external">Aspects</a>源码的话，就会更加了解如何去用正确使用消息转发，并且惊叹消息转发用处原来这么强大。优秀的人无处不在，所以不仅仅是自己研究，也要多汲取别人的思路想法。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2018/10/02/平凡的世界/" itemprop="url">
                   《平凡的世界》
                 </a>
@@ -1703,185 +1877,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/12/05/关于AFURLSessionManager的几点疑问/" itemprop="url">
-                  关于AFURLSessionManager的几点疑问
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-12-05T19:16:30+08:00" content="2017-12-05">
-              2017-12-05
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/分类/技术/" itemprop="url" rel="index">
-                    <span itemprop="name">技术</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2017/12/05/关于AFURLSessionManager的几点疑问/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/05/关于AFURLSessionManager的几点疑问/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2017/12/05/关于AFURLSessionManager的几点疑问/" class="leancloud_visitors" data-flag-title="关于AFURLSessionManager的几点疑问">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>这两天花了点时间看了下<a href="https://github.com/AFNetworking/AFNetworking" target="_blank" rel="external">AFNetworking</a>的源码，特别是对于 <code>AFURLSessionManager</code> 这个核心类研究的比较多，其中有几个疑问，所以写篇文章来记录下</p>
-<h3 id="关于AFURLSessionManager的内存泄露"><a href="#关于AFURLSessionManager的内存泄露" class="headerlink" title="关于AFURLSessionManager的内存泄露"></a>关于AFURLSessionManager的内存泄露</h3><p>这个问题在<a href="https://github.com/AFNetworking/AFNetworking/issues" target="_blank" rel="external">issues</a>上被多次提到，就是说仅仅是写个简单的请求，也会出现内存泄露的问题。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc]init];</div><div class="line">[manager POST:urlStringparameters:paraDic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line">        </div><div class="line">    &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line">        </div><div class="line">    &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">        </div><div class="line">    &#125;];</div></pre></td></tr></table></figure>
-<p>当我们在 UIViewController 写上这段代码，因为 AFHTTPSessionManager 不是全局的类，不是单利类，理论上来说，当退出当前 UIViewController 时，AFHTTPSessionManager 类的 dealloc 方法应该执行，然后事实上却没有。</p>
-<p>使用Instruments分析为：<br><img src="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager01.png" alt="image"></p>
-<p>意思就是 AFURLSessionManager 持有了 NSURLSession 对象，并且 NSURLSession 的delegate 对象 为AFURLSessionManager，造成了循环引用。其实就是这行代码</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">self.session = [NSURLSession sessionWithConfiguration:self.sessionConfiguration </div><div class="line">delegate:self delegateQueue:self.operationQueue];</div></pre></td></tr></table></figure>
-<p>为什么会出现这个问题呢？我们来看下苹果开发文档对于这个方法的描述</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">The session object keeps a strong reference to the delegate until your app</div><div class="line"> exits or explicitly invalidates the session. If you do not invalidate the </div><div class="line"> session by calling the invalidateAndCancel or finishTasksAndInvalidate </div><div class="line"> method, your app leaks memory until it exits.</div></pre></td></tr></table></figure>
-<p>果然如此，NSURLSession 对象会强引用传入的 delegate 对象直到APP退出或者手动调用方法使 session 失效，否则会出现内存泄露的问题。</p>
-<p>其实解决这个内存泄露的方法也很简单，官方文档也说了，手动使其失效。我们在 block 回调里调用一下 <code>invalidateAndCancel</code> 就行了</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">[manager POST:urlString parameters:dic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line"></div><div class="line">        </div><div class="line">        &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line"></div><div class="line">            [manager.session invalidateAndCancel];</div><div class="line">        &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">            [manager.session invalidateAndCancel];</div><div class="line">        &#125;];</div></pre></td></tr></table></figure>
-<p>但是 AFNetworking 的作者为什么没有这么做呢，而是任其内存泄露？我猜测可能是当一个界面存在多个网络请求时，我们用 manager 去请求，假如在一个请求回调里调用 <code>[manager.session invalidateAndCancel]</code> 方法，那么就使其他的请求终止了，故而发生错误。并且我们在页面下拉刷新时，由于 manager.session 已失效，也会出现错误。</p>
-<h3 id="为什么在block回调里可以写-self-访问属性"><a href="#为什么在block回调里可以写-self-访问属性" class="headerlink" title="为什么在block回调里可以写 self. 访问属性"></a>为什么在block回调里可以写 <code>self.</code> 访问属性</h3><p>比如这样写当前 UIViewController 仍能释放：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong)AFHTTPSessionManager *manager;</div><div class="line"></div><div class="line">self.manager = [[AFHTTPSessionManager alloc]init];</div><div class="line">[manager POST:urlString parameters:dic progress:^(NSProgress * _Nonnull uploadProgress) &#123;</div><div class="line">    &#125; success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) &#123;</div><div class="line"></div><div class="line">        self.XX = XX</div><div class="line">        </div><div class="line">    &#125; failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) &#123;</div><div class="line">    &#125;];</div></pre></td></tr></table></figure>
-<p>这里Controller对象是强引用了manager，block强引用了Controller，那么manager强引用了block了吗？肯定是没有的，我们来看下</p>
-<p>AFHTTPSessionManager有个字典属性:mutableTaskDelegatesKeyedByTaskIdentifier：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (readwrite, nonatomic, strong) NSMutableDictionary *mutableTaskDelegatesKeyedByTaskIdentifier;</div></pre></td></tr></table></figure>
-<p>字典里面放的是，key是NSURLSessionTask的唯一标识，value是AFURLSessionManagerTaskDelegate对象。</p>
-<p>AFURLSessionManagerTaskDelegate这个类强引用了 AFURLSessionManager 对象</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong) AFURLSessionManager *manager;</div></pre></td></tr></table></figure>
-<p>1.UIViewController对象      持有    AFHTTPSessionManager对象</p>
-<p>2.AFHTTPSessionManager对象  持有    字典</p>
-<p>3.字典                          持有    AF…TaskDelegate对象</p>
-<p>4.AF…TaskDelegate对象     持有    AFHTTPSessionManager对象(weak) </p>
-<p>5.AF…TaskDelegate对象     持有    completionHandler(回调的block)</p>
-<p>6.completionHandler        持有    UIViewController对象</p>
-<p>看着很乱，还是看图吧</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/AFURLSessionManager03.png" alt="image"></p>
-<p>那么AFNetworking是怎么处理的呢，怎么打破这种循环引用呢。</p>
-<p>看下这个代理方法，这个方法是请求完成后调用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">              task:(NSURLSessionTask *)task</div><div class="line">didCompleteWithError:(NSError *)error &#123;</div><div class="line"></div><div class="line"> [self removeDelegateForTask:task];</div><div class="line"> </div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)removeDelegateForTask:(NSURLSessionTask *)task &#123;</div><div class="line">    NSParameterAssert(task);</div><div class="line">    AFURLSessionManagerTaskDelegate *delegate = [self delegateForTask:task];</div><div class="line">    [self.lock lock];</div><div class="line">    [delegate cleanUpProgressForTask:task];</div><div class="line">    [self removeNotificationObserverForTask:task];</div><div class="line">    [self.mutableTaskDelegatesKeyedByTaskIdentifier removeObjectForKey:@(task.taskIdentifier)];</div><div class="line">    [self.lock unlock];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>在这个回调方法里，把 AFURLSessionManagerTaskDelegate 对象从字典中移除了，就是说字典不再持有 AFURLSessionManagerTaskDelegate 对象，所以就不存在强引用了问题了。</p>
-<h3 id="关于文件下载的操作"><a href="#关于文件下载的操作" class="headerlink" title="关于文件下载的操作"></a>关于文件下载的操作</h3><p>我们来看下 <code>NSURLSessionDownloadDelegate</code> 的这个方法</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">      downloadTask:(NSURLSessionDownloadTask *)downloadTask</div><div class="line">didFinishDownloadingToURL:(NSURL *)location</div><div class="line">&#123;</div><div class="line">    AFURLSessionManagerTaskDelegate *delegate = [self delegateForTask:downloadTask];</div><div class="line">    if (self.downloadTaskDidFinishDownloading) &#123;</div><div class="line">        //调用自定义的block拿到文件存储的地址</div><div class="line">        NSURL *fileURL = self.downloadTaskDidFinishDownloading(session, downloadTask, location);</div><div class="line">        if (fileURL) &#123;</div><div class="line">            delegate.downloadFileURL = fileURL;</div><div class="line">            NSError *error = nil;</div><div class="line">            //location是临时路径，我们把数据从临时的下载路径移动至我们需要的路径</div><div class="line">            [[NSFileManager defaultManager] moveItemAtURL:location toURL:fileURL error:&amp;error];</div><div class="line">             //如果出错</div><div class="line">            if (error) &#123;</div><div class="line">                [[NSNotificationCenter defaultCenter] postNotificationName:AFURLSessionDownloadTaskDidFailToMoveFileNotification object:downloadTask userInfo:error.userInfo];</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            return;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">     //转发代理</div><div class="line">    if (delegate) &#123;</div><div class="line">        [delegate URLSession:session downloadTask:downloadTask didFinishDownloadingToURL:location];</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>这个方法我下载文件完成的时候调用。如果设置了 <code>downloadTaskDidFinishDownloadingBlock</code>，就去操作数据，把数据从临时的下载路径移动至我们需要的路径，然后 return，意思就是直接返回，不再执行。</p>
-<p>如果没有设置block，就把这个代理转发到 AFURLSessionManagerTaskDelegate 自定义的代理里面。在自定义代理里做了同样的操作：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(NSURLSession *)session</div><div class="line">      downloadTask:(NSURLSessionDownloadTask *)downloadTask</div><div class="line">didFinishDownloadingToURL:(NSURL *)location</div><div class="line">&#123;</div><div class="line">    NSError *fileManagerError = nil;</div><div class="line">    self.downloadFileURL = nil;</div><div class="line"></div><div class="line">    //AF代理的自定义Block</div><div class="line">    if (self.downloadTaskDidFinishDownloading) &#123;</div><div class="line">        //得到自定义下载路径</div><div class="line">        self.downloadFileURL = self.downloadTaskDidFinishDownloading(session, downloadTask, location);</div><div class="line">        if (self.downloadFileURL) &#123;</div><div class="line">            //把下载路径移动到我们自定义的下载路径</div><div class="line">            [[NSFileManager defaultManager] moveItemAtURL:location toURL:self.downloadFileURL error:&amp;fileManagerError];</div><div class="line"></div><div class="line">            //错误发通知</div><div class="line">            if (fileManagerError) &#123;</div><div class="line">                [[NSNotificationCenter defaultCenter] postNotificationName:AFURLSessionDownloadTaskDidFailToMoveFileNotification object:downloadTask userInfo:fileManagerError.userInfo];</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>即：如果设置了 <code>downloadTaskDidFinishDownloadingBlock</code>，就去操作数据，把数据从临时的下载路径移动至我们需要的路径。这一步骤跟<code>NSURLSessionDownloadDelegate</code> 里的方法完全一样。并且，如果设置了block，操作文件后直接return了，不会再转发代理了。如果没设置block，转发代理后，在自己的代理方法里又判断了是否设置了block。</p>
-<p>这个转发代理的步骤看起来多余了，AF的作者为什么这样做，让我不得解，难道还有其他的用处？</p>
-<h3 id="其他的一些疑问"><a href="#其他的一些疑问" class="headerlink" title="其他的一些疑问"></a>其他的一些疑问</h3><p>1.当 AFURLSessionManagerTaskDelegate 这个类把 AFURLSessionManager 对象作为属性的时候用的是 weak</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, weak) AFURLSessionManager *manager;</div></pre></td></tr></table></figure>
-<p>在自定义的代理方法里，因为这个属性是weak，所以进行了下面这一步</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">- (void)URLSession:(__unused NSURLSession *)session</div><div class="line">              task:(NSURLSessionTask *)task</div><div class="line">didCompleteWithError:(NSError *)error</div><div class="line">&#123;</div><div class="line">	......</div><div class="line">    //强引用self.manager，防止被提前释放；因为self.manager声明为weak</div><div class="line">    __strong AFURLSessionManager *manager = self.manager;</div><div class="line">    .......</div><div class="line"> &#125;</div></pre></td></tr></table></figure>
-<p>关于这个 weak 属性，我看了下，即使换成 strong 也不会出现内存泄露的问题，因为请求完成后 AFURLSessionManager 把 AFURLSessionManagerTaskDelegate 对象从字典中移除了。并且在上面的这个方法里，也不用多去操作一步。有点不明白，为什么用weak。</p>
-<p>2.AFURLSessionManagerTaskDelegate 这个类在声明的时候同样遵循了 <code>NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionDownloadDelegate协议</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface AFURLSessionManagerTaskDelegate : NSObject &lt;NSURLSessionTaskDelegate, </div><div class="line">NSURLSessionDataDelegate, </div><div class="line">NSURLSessionDownloadDelegate&gt;</div></pre></td></tr></table></figure>
-<p>这里不遵循协议一样是可以的。可能是作者为了使这个类更规范一些，更像官方文档那样，所以这样写</p>
-<p>3.在创建 NSURLSession 对象时，指定了回调代理的queque</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">self.operationQueue.maxConcurrentOperationCount = 1;</div><div class="line">self.session = [NSURLSession sessionWithConfiguration:self.sessionConfiguration </div><div class="line">delegate:self delegateQueue:self.operationQueue];</div></pre></td></tr></table></figure>
-<p>这里我注意到了，设置了queue的最大operation并发个数为1，实现似于串行队列的效果。难道是作者为了节省内存资源这样做的，因为即使设置了并发个数为1，NSOperation也是可以同时执行多个任务的。</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1919,7 +1914,7 @@
       <section class="site-overview sidebar-panel  sidebar-panel-active ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
-               src="http://ocauxqtbu.bkt.clouddn.com/27563317749u=2381918280,2871499884&fm=21&gp=0.jpg"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
                alt="Zhou Jian" />
           <p class="site-author-name" itemprop="name">Zhou Jian</p>
           <p class="site-description motion-element" itemprop="description"></p>
@@ -1927,7 +1922,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
