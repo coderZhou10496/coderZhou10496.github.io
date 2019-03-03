@@ -1,0 +1,812 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="闲暇时间用Metal撸了一个图片处理demo，也查阅参考了很多大佬的文章，demo代码已上传至Github
+LUT滤镜LUT是look up table，查找表的缩写，所有的颜色都可以在一张表(图片)上找到。我们知道R、G、B三种颜色分别有256种取值，所有的颜色组合就有256X256X256种情况，大约占48MB空间，占用很大的内存，但是有了LUT映射表后，我就可以对任意一张图片进行相同的滤镜变">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节">
+<meta property="og:url" content="http://coderzhou.com/2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/index.html">
+<meta property="og:site_name" content="Jianless的博客">
+<meta property="og:description" content="闲暇时间用Metal撸了一个图片处理demo，也查阅参考了很多大佬的文章，demo代码已上传至Github
+LUT滤镜LUT是look up table，查找表的缩写，所有的颜色都可以在一张表(图片)上找到。我们知道R、G、B三种颜色分别有256种取值，所有的颜色组合就有256X256X256种情况，大约占48MB空间，占用很大的内存，但是有了LUT映射表后，我就可以对任意一张图片进行相同的滤镜变">
+<meta property="og:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/original.png">
+<meta property="og:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_xiaoguo_1.jpg">
+<meta property="og:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_xiaoguo_2.jpg">
+<meta property="og:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_blur.jpg">
+<meta property="og:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_liucheng.jpg">
+<meta property="og:updated_time" content="2019-03-03T11:22:24.932Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节">
+<meta name="twitter:description" content="闲暇时间用Metal撸了一个图片处理demo，也查阅参考了很多大佬的文章，demo代码已上传至Github
+LUT滤镜LUT是look up table，查找表的缩写，所有的颜色都可以在一张表(图片)上找到。我们知道R、G、B三种颜色分别有256种取值，所有的颜色组合就有256X256X256种情况，大约占48MB空间，占用很大的内存，但是有了LUT映射表后，我就可以对任意一张图片进行相同的滤镜变">
+<meta name="twitter:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/original.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/"/>
+
+  <title> Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节 | Jianless的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Jianless的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2019-02-21T20:36:51+08:00" content="2019-02-21">
+              2019-02-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/" class="leancloud_visitors" data-flag-title="Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>闲暇时间用Metal撸了一个图片处理demo，也查阅参考了很多大佬的文章，demo代码已上传至<a href="https://github.com/coderZhou10496/Filter" target="_blank" rel="external">Github</a></p>
+<h3 id="LUT滤镜"><a href="#LUT滤镜" class="headerlink" title="LUT滤镜"></a>LUT滤镜</h3><p>LUT是look up table，查找表的缩写，所有的颜色都可以在一张表(图片)上找到。我们知道R、G、B三种颜色分别有256种取值，所有的颜色组合就有256X256X256种情况，大约占48MB空间，占用很大的内存，但是有了LUT映射表后，我就可以对任意一张图片进行相同的滤镜变换。</p>
+<p>我们遍历图片的像素点，对于每一个像素点，获得其 RGB 组合，在 LUT 表格中查找此 RGB 组合及其对应的 RGB 映射值，然后用 RGB 映射值替换原图的像素点，就可以完成滤镜变换了。但是如何在一张图片中存储三种颜色值的组合呢？</p>
+<p><br></p>
+<div align="center"><br><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/original.png" width="50%"><br></div>
+
+<p><br></p>
+<p>上图就是一张标准的颜色查找表。它在横竖方向上分成了 8X8 一共 64 个小方格，每一个小方格内的 B 分量为一个定值，总共就表示了 B 分量的 64 种可能值。同时对于每一个小方格，横竖方向又各自分为 64 个小格，横向小格的 R 分量依次增加，纵向小格的 G 分量依次增加。即：</p>
+<ul>
+<li>整体对每个小方块而言，从左上往右下 B 从 0 到 1 ，是 z 字型的顺序</li>
+<li>单独对每个小方块而言，从左到右 R 从 0 到 1，代表 x</li>
+<li>单独对每个小方块而言，从上到下 G 从 0 到 1，代表 y</li>
+</ul>
+<p>那么根据颜色查找表得到转换后的颜色步骤为：</p>
+<p>1、用蓝色值R计算正方形的位置，假如一个像素点原来rgb是(0.1, 0.2, 0.4)，那么B = 0.4，则(0.4 <em> 63 = 25.6)/8 = 3，（25 - 3 </em> 8）= 1，即第3行第1列的那个大正方形，quad1.y = 3，quad1.x = 1.</p>
+<p>2、根据红色值和绿色值计算对应位置在整个纹理的坐标。</p>
+<p>texPos1.x = (quad1.x <em> 64 + rgb.r </em> 63 + 0.5)/512.0</p>
+<p>texPos1.y = (quad1.y <em> 64 + rgb.g </em> 63 + 0.5)/512.0</p>
+<p>这里，quad1.x * 64意思是：quad1.x和quad1.y是大正方形的坐标，每个大正方形是64格，所以乘以64；</p>
+<p>rgb.r * 63意思是：每个大正方形是64格，即(0,63)；</p>
+<p>加上0.5表示每个最小的小正方形的中心点；最后除以512.0是因为整个lut图片是512 * 512的，被放大了512倍。最后得到的是每个小正方格中心在整个lut大图中的坐标。</p>
+<p>3、根据texPos1和texPos2读取映射结果，再用蓝色值的小数部分进行mix操作</p>
+<p>shader代码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line">fragment float4</div><div class="line">lookUpTableShader(RasterizerData input [[stage_in]], // stage_in表示这个数据来自光栅化。（光栅化是顶点处理之后的步骤，业务层无法修改）</div><div class="line">               texture2d&lt;float&gt; normalTexture [[ texture(LYFragmentTextureIndexNormal) ]], // texture表明是纹理数据，LYFragmentTextureIndexNormal是索引</div><div class="line">               texture2d&lt;float&gt; lookupTableTexture [[ texture(LYFragmentTextureIndexLookupTable) ]]) // texture表明</div><div class="line">&#123;</div><div class="line">    constexpr sampler textureSampler (mag_filter::linear,</div><div class="line">                                      min_filter::linear); // sampler是采样器</div><div class="line">    float4 textureColor = normalTexture.sample(textureSampler, input.textureCoordinate); //正常的纹理颜色</div><div class="line">    </div><div class="line">    float blueColor = textureColor.b * 63.0; // 蓝色部分[0, 63] 共64种</div><div class="line">    </div><div class="line">    float2 quad1; // 第一个正方形的位置, 假如blueColor=22.5，则y=22/8=2，x=22-8*2=6，即是第2行，第6个正方形；（因为y是纵坐标）</div><div class="line">    quad1.y = floor(floor(blueColor) * 0.125);</div><div class="line">    quad1.x = floor(blueColor) - (quad1.y * 8.0);</div><div class="line">    </div><div class="line">    float2 quad2; // 第二个正方形的位置，同上。注意x、y坐标的计算，还有这里用int值也可以，但是为了效率使用float</div><div class="line">    quad2.y = floor(ceil(blueColor) * 0.125);</div><div class="line">    quad2.x = ceil(blueColor) - (quad2.y * 8.0);</div><div class="line">    </div><div class="line">    float2 texPos1; // 计算颜色(r,b,g)在第一个正方形中对应位置</div><div class="line">    texPos1.x = ((quad1.x * 64) +  textureColor.r*63 + 0.5)/512.0;</div><div class="line">    texPos1.y = ((quad1.y * 64) +  textureColor.g*63 + 0.5)/512.0;</div><div class="line">    </div><div class="line">    </div><div class="line">    float2 texPos2; // 同上</div><div class="line">    texPos2.x = ((quad2.x * 64) +  textureColor.r*63 + 0.5)/512.0;</div><div class="line">    texPos2.y = ((quad2.y * 64) +  textureColor.g*63 + 0.5)/512.0;</div><div class="line">    </div><div class="line">    float4 newColor1 = lookupTableTexture.sample(textureSampler, texPos1); // 正方形1的颜色值</div><div class="line">    float4 newColor2 = lookupTableTexture.sample(textureSampler, texPos2); // 正方形2的颜色值</div><div class="line">    </div><div class="line">    float4 newColor = mix(newColor1, newColor2, fract(blueColor)); // 根据小数点的部分进行mix</div><div class="line">    return float4(newColor.rgb, textureColor.w); //不修改alpha值</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这样的话我们就能从颜色查找表中得到了对应的转换后的颜色。</p>
+<p>如果使用lut进行滤镜，那么每一种滤镜效果都对应着一张颜色查找表。上面给出的图片是原色的颜色查找表，所以使用这张查找表对要滤镜的图片进行处理的话，要滤镜的图片不会有任何变化。</p>
+<p>而使用有滤镜效果的查找表进行处理，会有滤镜的效果</p>
+<p><br></p>
+<div align="center"><br><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_xiaoguo_1.jpg" width="70%" height="50%"><br></div>
+
+<p><br></p>
+<div align="center"><br><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_xiaoguo_2.jpg" width="70%" height="50%"><br></div>
+
+<p><br></p>
+<p>代码里，我封装了一个<code>ZJLookupTableImageFilter</code>工具类来进行lut滤镜，只需要传入一个MTKView和lut图片就可以进行lut滤镜</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">@interface ZJLookupTableImageFilter : ZJBaseImageFilter</div><div class="line"></div><div class="line">+ (void)filterWithImageView:(ZJShaderLookupImageView *)imageView lookupTableImage:(UIImage *)lutImage;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>上面的lookUpTableShader代码里传入了两个参数，一个是正常图片的texture，另一个是lut图片的texture，所以每选中一个lut图片对原图片进行滤镜处理时，需要得到lut图片的texture.这里我通过<code>ZJTextureProvider</code>这个工具类来获得一张图片的texture。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm</div><div class="line">                                                                                             width:width</div><div class="line">                                                                                            height:height</div><div class="line">                                                                                         mipmapped:NO];</div><div class="line">textureDescriptor.usage = MTLTextureUsageShaderRead;</div><div class="line">id&lt;MTLTexture&gt; texture = [context.device newTextureWithDescriptor:textureDescriptor];</div><div class="line"></div><div class="line"></div><div class="line">MTLRegion region = &#123;&#123; 0, 0, 0 &#125;, &#123;image.size.width, image.size.height, 1&#125;&#125;; // 纹理上传的范围</div><div class="line">[texture replaceRegion:region mipmapLevel:0 withBytes:spriteData bytesPerRow:4 * image.size.width];</div><div class="line">free(spriteData);</div></pre></td></tr></table></figure>
+<p>然后通过这行代码传入shader：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[renderEncoder setFragmentTexture:self.lookupTableTexture</div><div class="line">                                  atIndex:1];</div></pre></td></tr></table></figure>
+<p>注意这里index要传1，要和shader中的<code>LYFragmentTextureIndexLookupTable</code>对应</p>
+<h3 id="颜色饱和度、模糊度"><a href="#颜色饱和度、模糊度" class="headerlink" title="颜色饱和度、模糊度"></a>颜色饱和度、模糊度</h3><p>模糊后的图片，可调节颜色饱和度及模糊度:</p>
+<p><br></p>
+<div align="center"><br><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_blur.jpg" width="50%" height="50%"><br></div>
+
+<p><br></p>
+<p>（本来是录制了一个视频的，但是有4M多，半天显示不出来，只好放图片了。）</p>
+<p>无论是lut滤镜，还是模糊度调节，都是使用<code>MTLComputeCommandEncoder</code>来处理的。通过<code>computeCommandEncoder</code>方法来获得对象：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">id&lt;MTLComputeCommandEncoder&gt; computeEncoder = [commandBuffer computeCommandEncoder]</div></pre></td></tr></table></figure>
+<p>其中有一个地方要设置编码的线程组：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[computeEncoder dispatchThreadgroups:self.groupCount</div><div class="line">                   threadsPerThreadgroup:self.groupSize];</div></pre></td></tr></table></figure>
+<p>代码里使用<code>ZJShaderImageFilter</code>来进行饱和度模糊度调节，传入需要调节的图片及颜色饱和度value(0,1.0)，模糊度value(0,1.0)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">+ (void)shaderImageViewWithView:(ZJShaderImageView *)imageView </div><div class="line">   					saturationValue:(float)saturationValue </div><div class="line">   					blurRadiusValue:(float)blurRadiusValue</div></pre></td></tr></table></figure>
+<p>两种效果的shader代码分别为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">kernel void adjust_saturation(texture2d&lt;float, access::read&gt; inTexture [[texture(0)]],</div><div class="line">                              texture2d&lt;float, access::write&gt; outTexture [[texture(1)]],</div><div class="line">                              constant AdjustSaturationUniforms &amp;uniforms [[buffer(0)]],</div><div class="line">                              uint2 gid [[thread_position_in_grid]])</div><div class="line">&#123;</div><div class="line">    float4 inColor = inTexture.read(gid);</div><div class="line">    float value = dot(inColor.rgb, float3(0.299, 0.587, 0.114));</div><div class="line">    float4 grayColor(value, value, value, 1.0);</div><div class="line">    float4 outColor = mix(grayColor, inColor, uniforms.saturationFactor);</div><div class="line">    outTexture.write(outColor, gid);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">kernel void gaussian_blur_2d(texture2d&lt;float, access::read&gt; inTexture [[texture(0)]],</div><div class="line">                             texture2d&lt;float, access::write&gt; outTexture [[texture(1)]],</div><div class="line">                             texture2d&lt;float, access::read&gt; weights [[texture(2)]],</div><div class="line">                             uint2 gid [[thread_position_in_grid]])</div><div class="line">&#123;</div><div class="line">    int size = weights.get_width();</div><div class="line">    int radius = size / 2;</div><div class="line">    </div><div class="line">    float4 accumColor(0, 0, 0, 0);</div><div class="line">    for (int j = 0; j &lt; size; ++j)</div><div class="line">    &#123;</div><div class="line">        for (int i = 0; i &lt; size; ++i)</div><div class="line">        &#123;</div><div class="line">            uint2 kernelIndex(i, j);</div><div class="line">            uint2 textureIndex(gid.x + (i - radius), gid.y + (j - radius));</div><div class="line">            float4 color = inTexture.read(textureIndex).rgba;</div><div class="line">            float4 weight = weights.read(kernelIndex).rrrr;</div><div class="line">            accumColor += weight * color;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    outTexture.write(float4(accumColor.rgb, 1), gid);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>我们只需要处理texture，把最终的处理结果传给片元函数就可以了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[renderEncoder setFragmentTexture:_texture</div><div class="line">                                  atIndex:0];</div></pre></td></tr></table></figure>
+<p>即这里的_texture需要由外部控制，由<code>ZJShaderImageFilter</code>分别经过饱和度处理，模糊度处理后将最终需要传给shader的texture传入。</p>
+<p>饱和度处理时，需要额外传入buffer：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">struct AdjustSaturationUniforms uniforms;</div><div class="line">    uniforms.saturationFactor = self.isDirty ? self.saturValue : 1.0;</div><div class="line">    id&lt;MTLBuffer&gt; buffer = [self.metalContext.device newBufferWithLength:sizeof(uniforms)</div><div class="line">                                                                 options:MTLResourceOptionCPUCacheModeDefault];</div><div class="line">    memcpy([buffer contents], &amp;uniforms, sizeof(uniforms));</div><div class="line">    </div><div class="line">    [computeEncoder setBuffer:buffer offset:0 atIndex:0];</div></pre></td></tr></table></figure>
+<p>而对于模糊度处理，需要额外传入texture:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">if(self.blurTexture == nil) &#123;</div><div class="line">            [self configBlurTexture];</div><div class="line">        &#125;</div><div class="line">        [computeEncoder setTexture:self.blurTexture</div><div class="line">                           atIndex:2];</div></pre></td></tr></table></figure>
+<p>当texture经过编码器(Command Encoder)分别经过饱和度处理和模糊处理时<br>我们是先处理饱和度，后处理模糊度，即饱和度的texture输出outputTexture,为模糊度的输入inputTexture,而模糊度的输出为shader的输入。所以一定要保证饱和度经过编码器(Command Encoder)处理后，再去进行模糊操作</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[commandBuffer waitUntilCompleted]</div></pre></td></tr></table></figure>
+<p>最后一张简单的框架处理流程：</p>
+<p><br></p>
+<div align="center"><br><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_liucheng.jpg" width="100%"><br></div>
+
+<p><br></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/02/21/Metal学习(一)：基本概念介绍/" rel="next" title="Metal学习(一)：基本概念介绍">
+                <i class="fa fa-chevron-left"></i> Metal学习(一)：基本概念介绍
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/"
+           data-title="Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节" data-url="http://coderzhou.com/2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">28</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#LUT滤镜"><span class="nav-number">1.</span> <span class="nav-text">LUT滤镜</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#颜色饱和度、模糊度"><span class="nav-number">2.</span> <span class="nav-text">颜色饱和度、模糊度</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>

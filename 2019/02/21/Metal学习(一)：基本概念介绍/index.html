@@ -1,0 +1,814 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="断断续续的学习了Metal，整理下。
+关于Metal的介绍，先引用官方文档的一句话:
+1234The Metal framework supports GPU-accelerated advanced 3D graphics rendering and data-parallel computation workloads. Metal provides a modern and streamli">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Metal学习(一)：基本概念介绍">
+<meta property="og:url" content="http://coderzhou.com/2019/02/21/Metal学习(一)：基本概念介绍/index.html">
+<meta property="og:site_name" content="Jianless的博客">
+<meta property="og:description" content="断断续续的学习了Metal，整理下。
+关于Metal的介绍，先引用官方文档的一句话:
+1234The Metal framework supports GPU-accelerated advanced 3D graphics rendering and data-parallel computation workloads. Metal provides a modern and streamli">
+<meta property="og:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/Metal_kuangjia.jpg">
+<meta property="og:image" content="https://docs-assets.developer.apple.com/published/a8fcc3ae6f/bd9ffd7d-01bf-45f2-8678-779fd47a7f9c.png">
+<meta property="og:image" content="https://docs-assets.developer.apple.com/published/6aedb538f8/b5ff0489-1079-441a-8a24-8f8c75dd2b1e.png">
+<meta property="og:image" content="https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/Cmd-Model-1_2x.png">
+<meta property="og:updated_time" content="2019-03-03T10:52:17.131Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Metal学习(一)：基本概念介绍">
+<meta name="twitter:description" content="断断续续的学习了Metal，整理下。
+关于Metal的介绍，先引用官方文档的一句话:
+1234The Metal framework supports GPU-accelerated advanced 3D graphics rendering and data-parallel computation workloads. Metal provides a modern and streamli">
+<meta name="twitter:image" content="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/Metal_kuangjia.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2019/02/21/Metal学习(一)：基本概念介绍/"/>
+
+  <title> Metal学习(一)：基本概念介绍 | Jianless的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Jianless的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Metal学习(一)：基本概念介绍
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2019-02-21T20:13:10+08:00" content="2019-02-21">
+              2019-02-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2019/02/21/Metal学习(一)：基本概念介绍/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/21/Metal学习(一)：基本概念介绍/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2019/02/21/Metal学习(一)：基本概念介绍/" class="leancloud_visitors" data-flag-title="Metal学习(一)：基本概念介绍">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>断断续续的学习了<a href="https://developer.apple.com/documentation/metal?language=objc" target="_blank" rel="external">Metal</a>，整理下。</p>
+<p>关于Metal的介绍，先引用官方文档的一句话:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">The Metal framework supports GPU-accelerated advanced 3D graphics rendering and data-parallel computation workloads. </div><div class="line">Metal provides a modern and streamlined API for fine-grained, low-level control of the organization, processing, </div><div class="line">and submission of graphics and computation commands, as well as the management of the associated data and resources </div><div class="line">for these commands. A primary goal of Metal is to minimize the CPU overhead incurred by executing GPU workloads.</div></pre></td></tr></table></figure>
+<p>意思就是Metal框架提供了GPU加速的高级3D图形渲染功能和数据并行计算的功能，能够更有效地集成图形和计算任务，减小CPU消耗。</p>
+<p>Metal优点：</p>
+<ul>
+<li>GPU 支持的 3D 渲染</li>
+<li>和 CPU 并行处理数据 （深度学习）</li>
+<li>提供低功耗接口</li>
+<li>与 CPU 共享资源内存</li>
+</ul>
+<div align="center"><br><img src="http://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/Metal_kuangjia.jpg" width="50%" height="50%"><br></div>
+
+
+
+<p>Core Animation 依赖于 Metal 做 GPU 渲染，Core Graphics 做 CPU 渲染.</p>
+<p>并且在iOS12中，苹果已经弃用了<a href="https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/Introduction/Introduction.html" target="_blank" rel="external">OpenGL ES</a>对底层的支持，全面由Metal渲染。可见，苹果对于Metal框架越来越重视。研究Metal框架对于我们了解iOS系统是如何运作的，是怎么支持CoreAnimation框架进行渲染的有很大的帮助。并且用Metal能帮助我们实现一些很有意思的功能，比如图像处理，视频滤镜，高并发运算等。</p>
+<h3 id="GPU"><a href="#GPU" class="headerlink" title="GPU"></a>GPU</h3><p>在Metal架构中，<code>MTLDevice</code>协议定义了代表单个GPU的接口。与Metal交互所需的对象都来自于获取的<code>MTLDevice</code>。我们可以通过<code>MTLCreateSystemDefaultDevice</code>来获取所需要操作的GPU对象</p>
+<h3 id="MLBuffer"><a href="#MLBuffer" class="headerlink" title="MLBuffer"></a>MLBuffer</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">A memory allocation for storing unformatted data that is accessible to the GPU.</div></pre></td></tr></table></figure>
+<p>MLBuffer可以理解为一块连续的内存，它里面存储的数据，是没有格式、类型限制的，即可以存储任意类型的数据，是GPU可访问的专用容器，使图形渲染管道能够从中读取顶点数据。在Metal中用于存储顶点数据。</p>
+<p>一般使用这个方法来创建MTLBuffer对象：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">- (nullable id &lt;MTLBuffer&gt;)newBufferWithBytes:(const void *)pointer </div><div class="line">									 length:(NSUInteger)length </div><div class="line">									 options:(MTLResourceOptions)options</div></pre></td></tr></table></figure>
+<h3 id="MTLTexture"><a href="#MTLTexture" class="headerlink" title="MTLTexture"></a>MTLTexture</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">A memory allocation for storing formatted image data that is accessible to the GPU.</div></pre></td></tr></table></figure>
+<p>从开发者角度来看，texture 是一个名词，我们通常说的纹理，指的是一张二维的图片，把它像贴纸一样贴在视图上（采样），使得屏幕显示出我们想要的样子。</p>
+<p>但在物理上， texture 指的是 GPU 显存中一段连续的空间，用来存放图像数据。</p>
+<p>创建一个MTLTexture对象，需要用到MTLTextureDescriptor，即对纹理相关属性的配置。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line">MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];</div><div class="line"></div><div class="line">//  表明每个像素都有一个蓝色，绿色，红色和alpha通道，每个通道都是一个8位无符号标准化值</div><div class="line">textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;</div><div class="line"></div><div class="line"> //设置纹理的像素尺寸</div><div class="line">textureDescriptor.width = image.width;</div><div class="line">textureDescriptor.height = image.height;</div><div class="line"></div><div class="line">// 通过 descriptor 创建纹理对象</div><div class="line">_texture = [_device newTextureWithDescriptor:textureDescriptor];</div><div class="line"></div><div class="line">// Calculate the number of bytes per row of our image.</div><div class="line">NSUInteger bytesPerRow = 4 * image.width;</div><div class="line"></div><div class="line">//MTLRegion结构用于识别纹理的特定区域。 此示例使用图像数据填充整个纹理; 因此，覆盖整个纹理的像素区域等于纹理的尺寸</div><div class="line">MTLRegion region = &#123;</div><div class="line">    &#123; 0, 0, 0 &#125;,                   // MTLOrigin</div><div class="line">    &#123;image.width, image.height, 1&#125; // MTLSize</div><div class="line">&#125;;</div><div class="line"></div><div class="line">/* 与存储多种自定义数据的MTLBuffer对象不同，MTLTexture对象专门用于存储格式化的图像数据。 尽管MTLTextureDescriptor对象指定足够的信息来分配纹理内存，但需要额外的信息来填充空纹理容器。 </div><div class="line">MTLTexture对象由replaceRegion：mipmapLevel：withBytes：bytesPerRow：方法填充图像数据。</div><div class="line">*/</div><div class="line">[_texture replaceRegion:region</div><div class="line">            mipmapLevel:0</div><div class="line">              withBytes:image.data.bytes</div><div class="line">            bytesPerRow:bytesPerRow];</div></pre></td></tr></table></figure>
+<p>这里MTLRegion指的是texture中对应的图像区域，一般和图片大小保持一致。纹理坐标(0,0)默认在左下角，右上角为(1,1).</p>
+<div align="center"><br><br><br><img src="https://docs-assets.developer.apple.com/published/a8fcc3ae6f/bd9ffd7d-01bf-45f2-8678-779fd47a7f9c.png" width="50%" height="50%"><br><br><br></div>
+
+
+<h3 id="MTLLibrary"><a href="#MTLLibrary" class="headerlink" title="MTLLibrary"></a>MTLLibrary</h3><p>MTLLibrary负责加载定义在<code>.metal</code>文件中的着色器程序。通过MTLLibrary可以获得MTLFunction对象。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (nullable id &lt;MTLFunction&gt;) newFunctionWithName:(NSString *)functionName;</div></pre></td></tr></table></figure>
+<h3 id="MTLCommandQueue，MTLCommandBuffer"><a href="#MTLCommandQueue，MTLCommandBuffer" class="headerlink" title="MTLCommandQueue，MTLCommandBuffer"></a>MTLCommandQueue，MTLCommandBuffer</h3><p>MTLCommandQueue由device创建，是整个app绘制的队列，而command buffer存放每次渲染的指令,即包含了每次渲染所需要的信息，直到指令被提交到GPU执行。Command queue用于创建和组织MTLCommandBuffer，其内部存在着多个command buffer，并且保证指令（command buffer）有序地发送到GPU。</p>
+<p>command buffer是“一次性对象”，不支持重用。一旦command buffer被提交执行，唯一能做的是等待command buffer被调度或完成。</p>
+<ul>
+<li>Command buffers是从command queue里创建的</li>
+<li>Command encoders将渲染指令command填充到command buffers</li>
+<li>Command buffers将数据提交到GPU</li>
+<li>GPU开始执行，呈现结果</li>
+</ul>
+<p><img src="https://docs-assets.developer.apple.com/published/6aedb538f8/b5ff0489-1079-441a-8a24-8f8c75dd2b1e.png" alt="MTLCommandBuffer"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line">// Create a new command buffer for each render pass to the current drawable</div><div class="line">id&lt;MTLCommandBuffer&gt; commandBuffer = [_commandQueue commandBuffer];</div><div class="line">commandBuffer.label = @&quot;MyCommand&quot;;</div><div class="line">// Obtain a renderPassDescriptor generated from the view&apos;s drawable textures</div><div class="line">MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;</div><div class="line"></div><div class="line">if(renderPassDescriptor != nil)</div><div class="line">&#123;</div><div class="line">    // Create a render command encoder so we can render into something</div><div class="line">    id&lt;MTLRenderCommandEncoder&gt; renderEncoder =</div><div class="line">    [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];</div><div class="line">    renderEncoder.label = @&quot;MyRenderEncoder&quot;;</div><div class="line"></div><div class="line">    // 设置显示区域</div><div class="line">    [renderEncoder setViewport:(MTLViewport)&#123;0.0, 0.0, _viewportSize.x, _viewportSize.y, -1.0, 1.0 &#125;];</div><div class="line"></div><div class="line">    // 设置渲染管道，以保证顶点和片元两个shader会被调用</div><div class="line">    [renderEncoder setRenderPipelineState:_pipelineState];</div><div class="line"></div><div class="line">    // 设置顶点缓存</div><div class="line">    [renderEncoder setVertexBuffer:_vertices</div><div class="line">                            offset:0</div><div class="line">                          atIndex:AAPLVertexInputIndexVertices];</div><div class="line">    </div><div class="line">    [renderEncoder setVertexBytes:&amp;_viewportSize</div><div class="line">                           length:sizeof(_viewportSize)</div><div class="line">                          atIndex:AAPLVertexInputIndexViewportSize];</div><div class="line">    // 设置纹理</div><div class="line">    [renderEncoder setFragmentTexture:_texture</div><div class="line">                              atIndex:AAPLTextureIndexBaseColor];</div><div class="line">    // // 绘制</div><div class="line">    [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle</div><div class="line">                      vertexStart:0</div><div class="line">                      vertexCount:_numVertices];</div><div class="line">     // 结束</div><div class="line">    [renderEncoder endEncoding];</div><div class="line">    // 显示</div><div class="line">    [commandBuffer presentDrawable:view.currentDrawable];</div><div class="line">&#125;</div><div class="line">// Finalize rendering here &amp; push the command buffer to the GPU</div><div class="line">[commandBuffer commit];</div></pre></td></tr></table></figure>
+<h3 id="MTLCommandEncoder"><a href="#MTLCommandEncoder" class="headerlink" title="MTLCommandEncoder"></a>MTLCommandEncoder</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">An encoder that writes GPU commands into a command buffer</div></pre></td></tr></table></figure>
+<p>编码器(Command Encoder)，将我们描述的高级指令，编码转换成GPU可以理解的低级指令(GPU commands)，写入command buffer中。</p>
+<pre><code>Protocol | Description |  
+------ | -------- | 
+MTLRenderCommandEncoder | 用于图形渲染任务的编码器 |  
+MTLComputeCommandEncoder | 用于计算任务的编码器 | 
+MTLBlitCommandEncoder | 用于内存管理任务的编码器 |  
+MTLParallelRenderCommandEncoder | 用于并行编码的多个图形渲染任务的编码器 | 
+</code></pre><p>关于buffer，texture，Command Encoder,Command Queue之间的关系，借用官方的一张图，理得很清楚</p>
+<p><img src="https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/Cmd-Model-1_2x.png" alt="blockchain"></p>
+<h3 id="Metal-Shader-Language"><a href="#Metal-Shader-Language" class="headerlink" title="Metal Shader Language"></a>Metal Shader Language</h3><p><a href="https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf" target="_blank" rel="external">Metal Shader Language</a>我觉得是学Metal遇到的最大阻力了，并且只能看官方文档来学习，网上讲解的资料也很少，我也只是了解了个大概。</p>
+<p>shader有三个基本函数：</p>
+<p>顶点函数（vertex），对每个顶点进行处理，生成数据并输出到绘制管线，作为片元函数的输入；</p>
+<p>片元函数（fragment），对光栅化后的每个像素点进行处理，生成数据并输出到绘制管线；</p>
+<p>通用计算函数（kernel），是并行计算的函数，其返回值类型必须为void；</p>
+<p>比如一个顶点函数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">typedef struct</div><div class="line">&#123;</div><div class="line">    float4 clipSpacePosition [[position]]; // position的修饰符表示这个是顶点</div><div class="line">    </div><div class="line">    float2 textureCoordinate; // 纹理坐标，会做插值处理</div><div class="line">    </div><div class="line">&#125; RasterizerData;</div><div class="line"></div><div class="line">vertex RasterizerData // 返回给片元着色器的结构体</div><div class="line">vertexShader(uint vertexID [[ vertex_id ]], // vertex_id是顶点shader每次处理的index，用于定位当前的顶点</div><div class="line">             constant  ZJVertex*vertexArray [[ buffer(0) ]]) &#123; // buffer表明是缓存数据，0是索引</div><div class="line">    RasterizerData out;</div><div class="line">    out.clipSpacePosition = vertexArray[vertexID].position;</div><div class="line">    out.textureCoordinate = vertexArray[vertexID].textureCoordinate;</div><div class="line">    return out;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个函数的功能是把从 Metal API 绑定的数据从ZJVertex结构体封装成RasterizerData结构体并交给片元着色器。</p>
+<p>比如一个片元函数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">fragment float4</div><div class="line">samplingShader(RasterizerData input [[stage_in]], // stage_in表示这个数据来自光栅化。（光栅化是顶点处理之后的步骤，业务层无法修改）</div><div class="line">               texture2d&lt;half&gt; colorTexture [[ texture(0) ]]) // texture表明是纹理数据，0是索引</div><div class="line">&#123;</div><div class="line">    constexpr sampler textureSampler (mag_filter::linear,</div><div class="line">                                      min_filter::linear); // sampler是采样器 决定如何对一个纹理进行采样操作。寻址模式，过滤模式，归一化坐标，比较函数</div><div class="line">    </div><div class="line">    half4 colorSample = colorTexture.sample(textureSampler, input.textureCoordinate); // 得到纹理对应位置的颜色</div><div class="line">    </div><div class="line">    float4 color = float4(colorSample);</div><div class="line">    return color;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>片元着色器用于处理片元，它的返回值是这个片元的颜色，是一个四维向量。从输入的结构体中取出纹理坐标，利用采样器对纹理采样，拿到对应坐标的颜色值的RGB值，最后返回这个片元的颜色值。</p>
+<p>对于没接触过图形学人来说，这些名词比较陌生，可能一时难于理解，主要是多看多练，写多了就理解它们的意义了。</p>
+<p>接下会写一下Metal的渲染过程。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/02/02/Metal学习(二)：渲染过程/" rel="next" title="Metal学习(二)：渲染过程">
+                <i class="fa fa-chevron-left"></i> Metal学习(二)：渲染过程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/02/21/Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节/" rel="prev" title="Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节">
+                Metal学习(三)：实战之LUT滤镜及饱和度模糊度调节 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2019/02/21/Metal学习(一)：基本概念介绍/"
+           data-title="Metal学习(一)：基本概念介绍" data-url="http://coderzhou.com/2019/02/21/Metal学习(一)：基本概念介绍/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">28</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#GPU"><span class="nav-number">1.</span> <span class="nav-text">GPU</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MLBuffer"><span class="nav-number">2.</span> <span class="nav-text">MLBuffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MTLTexture"><span class="nav-number">3.</span> <span class="nav-text">MTLTexture</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MTLLibrary"><span class="nav-number">4.</span> <span class="nav-text">MTLLibrary</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MTLCommandQueue，MTLCommandBuffer"><span class="nav-number">5.</span> <span class="nav-text">MTLCommandQueue，MTLCommandBuffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MTLCommandEncoder"><span class="nav-number">6.</span> <span class="nav-text">MTLCommandEncoder</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Metal-Shader-Language"><span class="nav-number">7.</span> <span class="nav-text">Metal Shader Language</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>

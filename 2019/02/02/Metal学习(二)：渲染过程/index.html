@@ -1,0 +1,773 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="渲染管线Pipeline在图形处理中中，任何事物都在3D空间中，而屏幕和窗口却是2D像素数组，所以我们大部分工作都是把3D坐标转变为适应屏幕的2D像素。3D坐标转为2D坐标的处理过程是由的图形渲染管线（Pipeline，大多译为管线，实际上指的是一堆原始图形数据途经一个输送管道，期间经过各种变化处理最终出现在屏幕的过程）管理的。
+图形渲染管线可以被划分为两个主要部分：第一部分把你的3D坐标转换为2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Metal学习(二)：渲染过程">
+<meta property="og:url" content="http://coderzhou.com/2019/02/02/Metal学习(二)：渲染过程/index.html">
+<meta property="og:site_name" content="Jianless的博客">
+<meta property="og:description" content="渲染管线Pipeline在图形处理中中，任何事物都在3D空间中，而屏幕和窗口却是2D像素数组，所以我们大部分工作都是把3D坐标转变为适应屏幕的2D像素。3D坐标转为2D坐标的处理过程是由的图形渲染管线（Pipeline，大多译为管线，实际上指的是一堆原始图形数据途经一个输送管道，期间经过各种变化处理最终出现在屏幕的过程）管理的。
+图形渲染管线可以被划分为两个主要部分：第一部分把你的3D坐标转换为2">
+<meta property="og:image" content="https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/gfx-pipeline_2x.png">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_xuanranguocheng.jpg">
+<meta property="og:updated_time" content="2019-03-03T10:52:34.816Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Metal学习(二)：渲染过程">
+<meta name="twitter:description" content="渲染管线Pipeline在图形处理中中，任何事物都在3D空间中，而屏幕和窗口却是2D像素数组，所以我们大部分工作都是把3D坐标转变为适应屏幕的2D像素。3D坐标转为2D坐标的处理过程是由的图形渲染管线（Pipeline，大多译为管线，实际上指的是一堆原始图形数据途经一个输送管道，期间经过各种变化处理最终出现在屏幕的过程）管理的。
+图形渲染管线可以被划分为两个主要部分：第一部分把你的3D坐标转换为2">
+<meta name="twitter:image" content="https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/gfx-pipeline_2x.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2019/02/02/Metal学习(二)：渲染过程/"/>
+
+  <title> Metal学习(二)：渲染过程 | Jianless的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Jianless的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Metal学习(二)：渲染过程
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2019-02-02T16:54:54+08:00" content="2019-02-02">
+              2019-02-02
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2019/02/02/Metal学习(二)：渲染过程/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/02/Metal学习(二)：渲染过程/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2019/02/02/Metal学习(二)：渲染过程/" class="leancloud_visitors" data-flag-title="Metal学习(二)：渲染过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="渲染管线Pipeline"><a href="#渲染管线Pipeline" class="headerlink" title="渲染管线Pipeline"></a>渲染管线Pipeline</h3><p>在图形处理中中，任何事物都在3D空间中，而屏幕和窗口却是2D像素数组，所以我们大部分工作都是把3D坐标转变为适应屏幕的2D像素。3D坐标转为2D坐标的处理过程是由的图形渲染管线（Pipeline，大多译为管线，实际上指的是一堆原始图形数据途经一个输送管道，期间经过各种变化处理最终出现在屏幕的过程）管理的。</p>
+<p>图形渲染管线可以被划分为两个主要部分：第一部分把你的3D坐标转换为2D坐标，第二部分是把2D坐标转变为实际的有颜色的像素。</p>
+<h3 id="顶点数据"><a href="#顶点数据" class="headerlink" title="顶点数据"></a>顶点数据</h3><p>以数组的形式传递3个3D坐标作为图形渲染管线的输入，用来表示一个三角形，这个数组叫做顶点数据(Vertex Data)；顶点数据是一系列顶点的集合。一个顶点(Vertex)是一个3D坐标的数据的集合。</p>
+<a href="!--![Pipeline](https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/PipelineState_2x.png)--">!--![Pipeline](https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/PipelineState_2x.png)--</a>
+<h3 id="图元装配"><a href="#图元装配" class="headerlink" title="图元装配"></a>图元装配</h3><p>为了让系统知道我们的坐标和颜色值构成的到底是什么，需要你去指定这些数据所表示的渲染类型。我们是希望把这些数据渲染成一个点？一个三角形？还是仅仅是一个长长的线？做出的这些提示叫做图元。</p>
+<p>图元装配(Primitive Assembly)阶段将顶点着色器输出的所有顶点作为输入（如果是GL_POINTS，那么就是一个顶点），并所有的点装配成指定图元的形状。</p>
+<h3 id="Vertex-function："><a href="#Vertex-function：" class="headerlink" title="Vertex function："></a>Vertex function：</h3><p>接收一组顶点数据数组，每个顶点执行一次运算，计算该顶点的坐标，颜色，光照，纹理坐标等，在渲染管线中每个顶点都是独立地被执行。每个图元由一个或者多个顶点组成，每个顶点定义一个点，一条边的一端或者三角形的一个角。每个顶点关联一些数据，这些数据包括顶点坐标，颜色，法向量以及纹理坐标等。所有这些顶点相关的信息就构成顶点数据。<br>Vertex function的返回值会被作为片元着色器函数的输入。</p>
+<h3 id="Rasterization："><a href="#Rasterization：" class="headerlink" title="Rasterization："></a>Rasterization：</h3><p>在光栅化阶段，基本图元被转换为供片段着色器使用的片段。简单来说，就是将数据转化成可见像素的过程。在片段着色器运行之前会执行裁切(Clipping)。裁切会丢弃超出你的视图以外的所有像素，用来提升执行效率。在Metal中，这一步是用户控制不了的，由系统自动处理</p>
+<h3 id="Fragment-function"><a href="#Fragment-function" class="headerlink" title="Fragment function"></a>Fragment function</h3><p>片段着色器的主要作用是计算一个像素的最终颜色<br>在片段着色器之前的阶段，渲染管线都只是在和顶点，图元打交道。片段着色器可以根据顶点着色器输出的顶点纹理坐标对纹理进行采样(从纹理坐标获取纹理颜色叫做采样(Sampling))，以计算该片段的颜色值。从而调整成各种各样不同的效果图，这也是所有OpenGL或Metal高级效果产生的地方<br>片段着色器的返回值是一个四维向量，即是这个片元的颜色 RGBA 值</p>
+<p><img src="https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Art/gfx-pipeline_2x.png" alt="Pipeline"></p>
+<p>渲染过程：<br>读取顶点数据——执行顶点着色器——组装图元——光栅化图元——执行片元着色器——写入帧缓冲区——显示到屏幕上。</p>
+<p>下面就以实际代码来看一下,以<a href="https://developer.apple.com/documentation/metal/basic_texturing?language=objc" target="_blank" rel="external">官方Demo</a>为例：</p>
+<p>初始化顶点数据，然后根据顶点数据来计算顶点数量及MTLBuffer：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">// Set up a simple MTLBuffer with our vertices which include texture coordinates</div><div class="line">static const AAPLVertex quadVertices[] =</div><div class="line">&#123;</div><div class="line">    // Pixel positions, Texture coordinates</div><div class="line">    &#123; &#123;  250,  -250 &#125;,  &#123; 1.f, 0.f &#125; &#125;,</div><div class="line">    &#123; &#123; -250,  -250 &#125;,  &#123; 0.f, 0.f &#125; &#125;,</div><div class="line">    &#123; &#123; -250,   250 &#125;,  &#123; 0.f, 1.f &#125; &#125;,</div><div class="line"></div><div class="line">    &#123; &#123;  250,  -250 &#125;,  &#123; 1.f, 0.f &#125; &#125;,</div><div class="line">    &#123; &#123; -250,   250 &#125;,  &#123; 0.f, 1.f &#125; &#125;,</div><div class="line">    &#123; &#123;  250,   250 &#125;,  &#123; 1.f, 1.f &#125; &#125;,</div><div class="line">&#125;;</div><div class="line"></div><div class="line">// Create our vertex buffer, and initialize it with our quadVertices array</div><div class="line">_vertices = [_device newBufferWithBytes:quadVertices</div><div class="line">                                 length:sizeof(quadVertices)</div><div class="line">                                options:MTLResourceStorageModeShared];</div><div class="line"></div><div class="line"> // 通过将字节长度除以每个顶点的大小来计算顶点的数量</div><div class="line">_numVertices = sizeof(quadVertices) / sizeof(AAPLVertex);</div></pre></td></tr></table></figure>
+<p>然后获得图片数据，根据图片数据来设置MTLTexture</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">NSURL *imageFileLocation = [[NSBundle mainBundle] URLForResource:@&quot;Image&quot;</div><div class="line">                                                   withExtension:@&quot;tga&quot;];</div><div class="line">AAPLImage * image = [[AAPLImage alloc] initWithTGAFileAtLocation:imageFileLocation];</div><div class="line">if(!image)</div><div class="line">&#123;</div><div class="line">    NSLog(@&quot;Failed to create the image from %@&quot;, imageFileLocation.absoluteString);</div><div class="line">    return nil;</div><div class="line">&#125;</div><div class="line">MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];</div><div class="line"></div><div class="line">//  表明每个像素都有一个蓝色，绿色，红色和alpha通道，每个通道都是一个8位无符号标准化值</div><div class="line">textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;</div><div class="line"> //设置纹理的像素尺寸</div><div class="line">textureDescriptor.width = image.width;</div><div class="line">textureDescriptor.height = image.height;</div><div class="line">// 通过 descriptor 创建纹理对象</div><div class="line">_texture = [_device newTextureWithDescriptor:textureDescriptor];</div><div class="line">// Calculate the number of bytes per row of our image.</div><div class="line">NSUInteger bytesPerRow = 4 * image.width;</div><div class="line"></div><div class="line">//MTLRegion结构用于识别纹理的特定区域。 此示例使用图像数据填充整个纹理; 因此，覆盖整个纹理的像素区域等于纹理的尺寸</div><div class="line">MTLRegion region = &#123;</div><div class="line">    &#123; 0, 0, 0 &#125;,                   // MTLOrigin</div><div class="line">    &#123;image.width, image.height, 1&#125; // MTLSize</div><div class="line">&#125;;</div><div class="line">// 与存储多种自定义数据的MTLBuffer对象不同，MTLTexture对象专门用于存储格式化的图像数据。 尽管MTLTextureDescriptor对象指定足够的信息来分配纹理内存，但需要额外的信息来填充空纹理容器。 MTLTexture对象由replaceRegion：mipmapLevel：withBytes：bytesPerRow：方法填充图像数据。</div><div class="line">[_texture replaceRegion:region</div><div class="line">            mipmapLevel:0</div><div class="line">              withBytes:image.data.bytes</div><div class="line">            bytesPerRow:bytesPerRow];</div></pre></td></tr></table></figure>
+<p>因为demo中给的是tga文件格式的图片，所以专门封装了一个类<code>AAPLImage</code>来处理图片。当然，我们也可以使用一下代码来获得texture</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">CGImageRef spriteImage = image.CGImage;</div><div class="line">// 1 读取图片的大小</div><div class="line">size_t width = CGImageGetWidth(spriteImage);</div><div class="line">size_t height = CGImageGetHeight(spriteImage);</div><div class="line">Byte * spriteData = (Byte *) calloc(width * height * 4, sizeof(Byte)); //rgba共4个byte</div><div class="line">CGContextRef spriteContext = CGBitmapContextCreate(spriteData, width, height, 8, width*4,</div><div class="line">                                                   CGImageGetColorSpace(spriteImage), kCGImageAlphaPremultipliedLast);</div><div class="line">    </div><div class="line">// 2 在CGContextRef上绘图</div><div class="line">CGContextDrawImage(spriteContext, CGRectMake(0, 0, width, height), spriteImage);</div><div class="line">CGContextRelease(spriteContext);</div><div class="line">    </div><div class="line">MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm</div><div class="line">                                                                                             width:width</div><div class="line">                                                                                            height:height</div><div class="line">                                                                                         mipmapped:NO];</div><div class="line">textureDescriptor.usage = MTLTextureUsageShaderRead;</div><div class="line">id&lt;MTLTexture&gt; texture = [context.device newTextureWithDescriptor:textureDescriptor];</div><div class="line">    </div><div class="line">    </div><div class="line">MTLRegion region = &#123;&#123; 0, 0, 0 &#125;, &#123;image.size.width, image.size.height, 1&#125;&#125;; // 纹理上传的范围</div><div class="line">[texture replaceRegion:region mipmapLevel:0 withBytes:spriteData bytesPerRow:4 * image.size.width];</div><div class="line">free(spriteData);</div></pre></td></tr></table></figure>
+<p>接下来就是初始化MTLRenderPipelineState及MTLCommandQueue</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">// Load all the shader files with a metal file extension in the project</div><div class="line">id&lt;MTLLibrary&gt; defaultLibrary = [_device newDefaultLibrary];</div><div class="line"></div><div class="line">// Load the vertex function from the library</div><div class="line">id&lt;MTLFunction&gt; vertexFunction = [defaultLibrary newFunctionWithName:@&quot;vertexShader&quot;];</div><div class="line"></div><div class="line">// Load the fragment function from the library</div><div class="line">id&lt;MTLFunction&gt; fragmentFunction = [defaultLibrary newFunctionWithName:@&quot;samplingShader&quot;];</div><div class="line"></div><div class="line">// Set up a descriptor for creating a pipeline state object</div><div class="line">MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];</div><div class="line">pipelineStateDescriptor.label = @&quot;Texturing Pipeline&quot;;</div><div class="line">pipelineStateDescriptor.vertexFunction = vertexFunction;</div><div class="line">pipelineStateDescriptor.fragmentFunction = fragmentFunction;</div><div class="line">pipelineStateDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat;</div><div class="line"></div><div class="line">NSError *error = NULL;</div><div class="line">_pipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor</div><div class="line">                                                         error:&amp;error];</div><div class="line"></div><div class="line">// Create the command queue</div><div class="line">_commandQueue = [_device newCommandQueue];</div></pre></td></tr></table></figure>
+<p>最后就是绘制视图调用的<code>- (void)drawInMTKView:(nonnull MTKView *)view</code>方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line">- (void)drawInMTKView:(nonnull MTKView *)view</div><div class="line">&#123;</div><div class="line">    id&lt;MTLCommandBuffer&gt; commandBuffer = [_commandQueue commandBuffer];</div><div class="line">    commandBuffer.label = @&quot;MyCommand&quot;;</div><div class="line">    MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;</div><div class="line"></div><div class="line">    if(renderPassDescriptor != nil)</div><div class="line">    &#123;</div><div class="line">        // Create a render command encoder so we can render into something</div><div class="line">        id&lt;MTLRenderCommandEncoder&gt; renderEncoder =</div><div class="line">        [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];</div><div class="line">        renderEncoder.label = @&quot;MyRenderEncoder&quot;;</div><div class="line">        // 设置显示区域</div><div class="line">        [renderEncoder setViewport:(MTLViewport)&#123;0.0, 0.0, _viewportSize.x, _viewportSize.y, -1.0, 1.0 &#125;];</div><div class="line">        // 设置渲染管道，以保证顶点和片元两个shader会被调用</div><div class="line">        [renderEncoder setRenderPipelineState:_pipelineState];</div><div class="line">        // 设置顶点缓存</div><div class="line">        [renderEncoder setVertexBuffer:_vertices</div><div class="line">                                offset:0</div><div class="line">                              atIndex:AAPLVertexInputIndexVertices];</div><div class="line">        [renderEncoder setVertexBytes:&amp;_viewportSize</div><div class="line">                               length:sizeof(_viewportSize)</div><div class="line">                              atIndex:AAPLVertexInputIndexViewportSize];</div><div class="line">        // 设置纹理</div><div class="line">        [renderEncoder setFragmentTexture:_texture</div><div class="line">                                  atIndex:AAPLTextureIndexBaseColor];</div><div class="line">        // // 绘制</div><div class="line">        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle</div><div class="line">                          vertexStart:0</div><div class="line">                          vertexCount:_numVertices];</div><div class="line">         // 结束</div><div class="line">        [renderEncoder endEncoding];</div><div class="line">        // 显示</div><div class="line">        [commandBuffer presentDrawable:view.currentDrawable];</div><div class="line">    &#125;   </div><div class="line">    // Finalize rendering here &amp; push the command buffer to the GPU</div><div class="line">    [commandBuffer commit];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在这个环节中:</p>
+<ul>
+<li>第一步是获取command buffer(命令缓冲区)。 所有进入GPU的工作将被排入此缓冲区。 我们需要前一阶段的command queue来创建一个command buffer(命令缓冲区)。</li>
+<li>第二步是设置render pass(渲染通道)。 渲染通道描述符告诉Metal渲染图像时要执行的操作。 配置它需要我们指定我们渲染的颜色纹理。</li>
+<li>第三步是实际drawing(绘制)。 我们指定存储顶点的缓冲区，然后指定我们需要绘制的基元。 第四步也是最后一步是commit the command buffer(提交命令缓冲区)给GPU。 调用commit时，command buffer会被编码，发送到命令队列的末尾，并在GPU运行时执行。</li>
+</ul>
+<p>最后附一张非常详细的流程图：</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/metal_xuanranguocheng.jpg" alt="xuanran"></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/12/15/MLeaksFinder与FBRetainCycleDetector小结/" rel="next" title="MLeaksFinder与FBRetainCycleDetector小结">
+                <i class="fa fa-chevron-left"></i> MLeaksFinder与FBRetainCycleDetector小结
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/02/21/Metal学习(一)：基本概念介绍/" rel="prev" title="Metal学习(一)：基本概念介绍">
+                Metal学习(一)：基本概念介绍 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2019/02/02/Metal学习(二)：渲染过程/"
+           data-title="Metal学习(二)：渲染过程" data-url="http://coderzhou.com/2019/02/02/Metal学习(二)：渲染过程/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">28</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#渲染管线Pipeline"><span class="nav-number">1.</span> <span class="nav-text">渲染管线Pipeline</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#顶点数据"><span class="nav-number">2.</span> <span class="nav-text">顶点数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#图元装配"><span class="nav-number">3.</span> <span class="nav-text">图元装配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Vertex-function："><span class="nav-number">4.</span> <span class="nav-text">Vertex function：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Rasterization："><span class="nav-number">5.</span> <span class="nav-text">Rasterization：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Fragment-function"><span class="nav-number">6.</span> <span class="nav-text">Fragment function</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>
