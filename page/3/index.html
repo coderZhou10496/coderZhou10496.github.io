@@ -235,6 +235,201 @@
             
               
                 
+                <a class="post-title-link" href="/2017/04/29/自定义转场动画/" itemprop="url">
+                  自定义转场动画
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-04-29T21:02:39+08:00" content="2017-04-29">
+              2017-04-29
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/04/29/自定义转场动画/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/29/自定义转场动画/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/04/29/自定义转场动画/" class="leancloud_visitors" data-flag-title="自定义转场动画">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>最近详细学习了关于转场动画的知识，通过一些API可以帮助我们实现炫酷的转场动画，先直接上Demo:<a href="https://github.com/coderZhou10496/TransitionDemo" target="_blank" rel="external">Github地址</a>，下面的转场动画都是自定义的动画</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/%E8%BD%AC%E5%9C%BA%E5%8A%A8%E7%94%BB.gif" alt="image"></p>
+<p>先来了解一下转场动画所需要的几个protocol</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/TransitionPic.png" alt="image"></p>
+<p>我们一一简单了解下这些类是干嘛用的：</p>
+<blockquote>
+<p><code>UINavigationControllerDelegate</code></p>
+</blockquote>
+<p>这个delegate主要有一个方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">- (nullable id &lt;UIViewControllerAnimatedTransitioning&gt;)navigationController:(UINavigationController *)navigationController</div><div class="line">                                   animationControllerForOperation:(UINavigationControllerOperation)operation</div><div class="line">                                                fromViewController:(UIViewController *)fromVC</div><div class="line">                                                  toViewController:(UIViewController *)toVC</div></pre></td></tr></table></figure></p>
+<p>自定义 push pop 动画时要实现这个方法，这个方法需要我们提供一个实现了<code>UIViewControllerAnimatedTransitioning</code>协议的对象。</p>
+<blockquote>
+<p><code>UIViewControllerTransitioningDelegate</code></p>
+</blockquote>
+<p>这个delegate 用于实现自定义的 present diss 动画</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">- (id &lt;UIViewControllerAnimatedTransitioning&gt;)animationControllerForPresentedController:</div><div class="line">(UIViewController *)presented presentingController:(UIViewController *)presenting sourceController:(UIViewController *)source</div></pre></td></tr></table></figure>
+<p>这个方法也需要我们提供一个实现了<code>UIViewControllerAnimatedTransitioning</code>协议的对象。</p>
+<blockquote>
+<p><code>UIViewControllerInteractiveTransitioning</code></p>
+</blockquote>
+<p>这个protocol是跟手势交互相关的。比如需要通过手势来返回到上一界面，就要返回实现了这个protocol的对象</p>
+<blockquote>
+<p><code>UIViewControllerAnimatedTransitioning</code> </p>
+</blockquote>
+<p> 这个protocol就是用于实现动画效果的protocol了，其中有两个必须实现的方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">- (NSTimeInterval)transitionDuration:(nullable id &lt;UIViewControllerContextTransitioning&gt;)transitionContext</div><div class="line">- (void)animateTransition:(id &lt;UIViewControllerContextTransitioning&gt;)transitionContext</div></pre></td></tr></table></figure>
+<p>第一个方法返回动画所需要的时间，第二个方法就是动画的具体实现</p>
+<blockquote>
+<p><code>UIViewControllerContextTransitioning</code></p>
+</blockquote>
+<p>这个protocol提供我们动画的具体实现所需要的元素，比如这些方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">- (UIViewController *)viewControllerForKey:(UITransitionContextViewControllerKey)</div><div class="line">- ( UIView *)viewForKey:(UITransitionContextViewKey)</div><div class="line">- (UIView *)containerView</div></pre></td></tr></table></figure>
+<p>通过 UITransitionContextViewControllerKey 获得 动画所需要的 fromVc toVc，通过UITransitionContextViewKey 获得 动画所需要的 fromView toView 等等。</p>
+<p>接下来就是实战了，主要是对一系列过程的封装。我采用了类别的方式，对 UINavigationController 增加了一个属性，即 push 的动画方式</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">typedef NS_ENUM(NSInteger,ZJNavigationTransitioningStyle)&#123;</div><div class="line">    ZJNavigationTransitioningStyleSystem,</div><div class="line">    ZJNavigationTransitioningStyleRound,</div><div class="line">    ZJNavigationTransitioningStyleScale,</div><div class="line">    ZJNavigationTransitioningStyleLeftSunken,</div><div class="line">    ZJNavigationTransitioningStyleRotate</div><div class="line">&#125;;</div><div class="line"></div><div class="line">@interface UINavigationController (ZJTransitioning)</div><div class="line">@property (nonatomic,assign) ZJNavigationTransitioningStyle transitioningStyle;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>当我们 push 的时候 ，只需为这个属性赋值就行了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">ResultViewController *controller = [[ResultViewController alloc] init];</div><div class="line">self.navigationController.transitioningStyle = ZJNavigationTransitioningStyleSystem;</div><div class="line">[self.navigationController pushViewController:controller animated:YES];</div></pre></td></tr></table></figure>
+<p>下面我们对其中一种动画方式 ZJNavigationTransitioningStyleScale ，详细描述实现过程 </p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/scale.gif" alt="image"></p>
+<p>在 UINavigationController (ZJTransitioning) 这个类别的 .m 实现文件中，我们将 UINavigationController 的 delegate 方法用 ZJNavigationDelegateMediator 这个类来接收，意思就是 <code>@protocol UINavigationControllerDelegate &lt;NSObject&gt;</code>里的方法，在 ZJNavigationDelegateMediator 类里面来实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">-(void)viewDidLoad</div><div class="line">&#123;</div><div class="line">//    将delegate 设置为 ZJNavigationDelegateMediator 对象，在 ZJNavigationDelegateMediator 类里实现</div><div class="line">//    UINavigationControllerDelegate的方法</div><div class="line">    self.delegate = self.mediator;</div><div class="line">&#125;</div><div class="line">-(ZJNavigationTransitioningStyle)transitioningStyle</div><div class="line">&#123;</div><div class="line">    return self.mediator.transitioningStyle;</div><div class="line">&#125;</div><div class="line">-(void)setTransitioningStyle:(ZJNavigationTransitioningStyle)transitioningStyle</div><div class="line">&#123;</div><div class="line">    self.mediator.transitioningStyle = transitioningStyle;</div><div class="line">&#125;</div><div class="line">-(ZJNavigationDelegateMediator *)mediator</div><div class="line">&#123;</div><div class="line">    ZJNavigationDelegateMediator *mediator = objc_getAssociatedObject(self, &amp;ZJTransitioningMediator_key);</div><div class="line">    if(mediator == nil)</div><div class="line">    &#123;</div><div class="line">        mediator = [[ZJNavigationDelegateMediator alloc] init];</div><div class="line">        self.mediator = mediator;</div><div class="line">    &#125;</div><div class="line">    return mediator;</div><div class="line">    </div><div class="line">&#125;</div><div class="line">-(void)setMediator:(ZJNavigationDelegateMediator *)mediator</div><div class="line">&#123;</div><div class="line">    objc_setAssociatedObject(self, &amp;ZJTransitioningMediator_key, mediator, OBJC_ASSOCIATION_RETAIN_NONATOMIC);</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在 ZJNavigationDelegateMediator 类里也定义了一个 ZJNavigationTransitioningStyle 的属性</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface ZJNavigationDelegateMediator : NSObject&lt;UINavigationControllerDelegate&gt;</div><div class="line">@property (nonatomic,assign) ZJNavigationTransitioningStyle transitioningStyle;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>设置完<code>self.navigationController.transitioningStyle</code>后，所有的操作都转交给 ZJNavigationDelegateMediator，返回的动画方式的对象，以及动画对象的管理，也是在这个类里实现。</p>
+<p>下面是实现 UINavigationControllerDelegate 的方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line">- (id&lt;UIViewControllerAnimatedTransitioning&gt;)navigationController:(UINavigationController *)navigationController</div><div class="line">                                  animationControllerForOperation:(UINavigationControllerOperation)operation</div><div class="line">                                               fromViewController:(UIViewController *)fromVC</div><div class="line">                                                 toViewController:(UIViewController *)toVC</div><div class="line">&#123;</div><div class="line">    self.operation = operation;</div><div class="line">    if(self.transitioningStyle == ZJNavigationTransitioningStyleRound)</div><div class="line">    &#123;</div><div class="line">        return self.roundTransitioning;</div><div class="line">    &#125;</div><div class="line">    else if (self.transitioningStyle == ZJNavigationTransitioningStyleScale)</div><div class="line">    &#123;</div><div class="line">        return self.scaleTransitioning;</div><div class="line">    &#125;</div><div class="line">    else if (self.transitioningStyle == ZJNavigationTransitioningStyleLeftSunken)</div><div class="line">    &#123;</div><div class="line">        return self.leftSunkenTransitioning;</div><div class="line">    &#125;</div><div class="line">    else if (self.transitioningStyle == ZJNavigationTransitioningStyleRotate)</div><div class="line">    &#123;</div><div class="line">        return self.rotateTransitioning;</div><div class="line">    &#125;</div><div class="line">    return nil;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>选择了哪种动画方式，就返回相应的 AnimatedTransitioning 对象，并将以何种方式进行页面切换 即是 push 还是 pop 也传到 AnimatedTransitioning 对象里</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">-(ZJScaleAnimatedTransitioning *)scaleTransitioning</div><div class="line">&#123;</div><div class="line">    if(_scaleTransitioning == nil)</div><div class="line">    &#123;</div><div class="line">        _scaleTransitioning = [[ZJScaleAnimatedTransitioning alloc] init];</div><div class="line">    &#125;</div><div class="line">    _scaleTransitioning.operation = self.operation;</div><div class="line">    return _scaleTransitioning;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>所有的动画对象，都继承自 ZJBaseAnimatedTransitioning，这个类 实现 <code>@protocol UIViewControllerAnimatedTransitioning &lt;NSObject&gt;</code>这个动画 protocol。</p>
+<p>由于 动画方式 为 ZJNavigationTransitioningStyleScale 的时候，需要得到 push 前图片的位置信息，以及 push 后图片的位置信息 ，所以我声明了protocol，用来得到这些信息</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">/**</div><div class="line"> 此协议是为了得到push方式为 ZJNavigationTransitioningStyleRound 和 ZJNavigationTransitioningStyleScale 的图片的相关信息</div><div class="line"> */</div><div class="line">@protocol ZJTransitioningProtocol &lt;NSObject&gt;</div><div class="line">-(NSDictionary *)getTransitioningInfoWithTransitioning:(id &lt;UIViewControllerAnimatedTransitioning&gt;)transitioning;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>在 <code>@protocol UIViewControllerAnimatedTransitioning &lt;NSObject&gt;</code> 实现方法里</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (void)animateTransition:(id &lt;UIViewControllerContextTransitioning&gt;)transitionContext</div></pre></td></tr></table></figure>
+<p>我们去写实际动画相关的代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">UIViewController *fromVC = [transitionContext viewControllerForKey:UITransitionContextFromViewControllerKey];</div><div class="line">UIViewController *toVC = [transitionContext viewControllerForKey:UITransitionContextToViewControllerKey];</div><div class="line">UIView *fromView = [transitionContext viewForKey:UITransitionContextFromViewKey];</div><div class="line">UIView *toView = [transitionContext viewForKey:UITransitionContextToViewKey];</div><div class="line">UIView *containerView = [transitionContext containerView];</div></pre></td></tr></table></figure>
+<p>在本例中，当为 push 操作时，fromVC 为 TableViewController，toVC 为 ImageViewController。而当为 pop 操作时，fromVC 为 ImageViewController，toVC 为 TableViewController，这一点千万要注意，是相反的。</p>
+<p>先通过自己定义的 ZJTransitioningProtocol 得到图片的位置信息</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">UIImageView *fromImageView = nil;</div><div class="line">UIImageView *toImageView = nil;</div><div class="line">CGRect fromRect = CGRectZero ;</div><div class="line">CGRect ToRect = CGRectZero;</div><div class="line">if([fromVC respondsToSelector:@selector(getTransitioningInfoWithTransitioning:)])</div><div class="line">&#123;</div><div class="line">    NSDictionary *dic = [(id &lt;ZJTransitioningProtocol&gt;)fromVC getTransitioningInfoWithTransitioning:self];</div><div class="line">    fromImageView = dic[@&quot;imageView&quot;];</div><div class="line">    fromRect = CGRectFromString(dic[@&quot;frame&quot;]);</div><div class="line"> &#125;</div><div class="line">  if([toVC respondsToSelector:@selector(getTransitioningInfoWithTransitioning:)])</div><div class="line"> &#123;</div><div class="line">     NSDictionary *dic = [(id &lt;ZJTransitioningProtocol&gt;)toVC getTransitioningInfoWithTransitioning:self];</div><div class="line">     toImageView = dic[@&quot;imageView&quot;];</div><div class="line">     oRect = CGRectFromString(dic[@&quot;frame&quot;]);</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<p> 将 toView 加入到 containerView 的时候，当为 pop 操作时，注意为</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[containerView insertSubview:toView belowSubview:fromView];</div></pre></td></tr></table></figure>
+<p> 上面都是准备操作，下面到了实际的动画操作</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">UIImageView *imageView = [self copyOfImageView:toImageView];</div><div class="line">imageView.frame = fromRect;</div><div class="line">[[UIApplication sharedApplication].keyWindow addSubview:imageView];</div><div class="line">fromImageView.hidden = YES;</div><div class="line">toImageView.hidden = YES;</div></pre></td></tr></table></figure>
+<p>加一个过渡的imageView 加在 window 上 ，用imageView的坐标的变化实现动画效果，动画结束后移除此过渡imageView，并将先将原来的fromImageView toImageView隐藏.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line">[UIView animateWithDuration:[self transitionDuration:transitionContext] delay:0.0 options:UIViewAnimationOptionCurveEaseOut animations: ^&#123;</div><div class="line">   // 动画阴影效果</div><div class="line">    maskViewForFromView.alpha = maskViewAlpha;</div><div class="line">    maskViewForToView.alpha = 0.0;</div><div class="line">    </div><div class="line">    toView.frame = finalFrameForToVC;</div><div class="line">    if (self.operation == UINavigationControllerOperationPush)</div><div class="line">    &#123;</div><div class="line">        CGRect frame = fromView.frame;</div><div class="line">        frame.origin.x = frame.origin.x - frame.size.width / 3.0;</div><div class="line">        fromView.frame = frame;</div><div class="line">    &#125;</div><div class="line">    else if (self.operation == UINavigationControllerOperationPop)</div><div class="line">    &#123;</div><div class="line">        CGRect frame = fromView.frame;</div><div class="line">        frame.origin.x = frame.origin.x + frame.size.width;</div><div class="line">        fromView.frame = frame;</div><div class="line">    &#125;</div><div class="line">    imageView.frame = ToRect;</div><div class="line">&#125; completion:^(BOOL finished) &#123;</div><div class="line">    [maskViewForFromView removeFromSuperview];</div><div class="line">    [maskViewForToView removeFromSuperview];</div><div class="line"></div><div class="line">    fromImageView.hidden = NO;</div><div class="line">    toImageView.hidden = NO;</div><div class="line">    [imageView removeFromSuperview];</div><div class="line">    [transitionContext completeTransition:!transitionContext.transitionWasCancelled];</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>代码很好理解，在 fromView toView 上都加了过渡的阴影view，动画的过程中将 maskViewForFromView 的 alpha 增加，将 maskViewForToView 的 alpha 减小至0，动画结束后移除此阴影view。切换方式为 push pop时，分别设置 fromView.frame ，完成动画效果。最后，一定不要忘了设置这句代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[transitionContext completeTransition:!transitionContext.transitionWasCancelled];</div></pre></td></tr></table></figure>
+<p>这是为了告诉系统，动画已经完成，这是系统为自动帮我们移除 fromView.</p>
+<p>关于其他动画方式的具体实现，有兴趣的可以到Github上下载，都有注释，很好理解</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2017/04/04/关于__block的实现原理/" itemprop="url">
                   __block实现原理
                 </a>
@@ -1636,7 +1831,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">28</span>
+              <span class="site-state-item-count">29</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
