@@ -1,0 +1,844 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="最近项目里的直播聊天系统使用了WebSocket进行通信，故了解了一番WebSocket的知识。
+WebSocket协议细解WebSocket协议和HTTP协议一样，也是应用层协议，都是基于TCP的，可靠性的传输协议。不同点主要有两点：
+
+
+WebSocket是双向通信协议，客户端与服务端都可以发送或接收信息
+
+
+
+WebSocket的连接需要HTTP的一次握手
+
+
+
+连接首先客户端发送一个请求，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WebSocket">
+<meta property="og:url" content="http://coderzhou.com/2019/04/06/WebSocket/index.html">
+<meta property="og:site_name" content="Jianless的博客">
+<meta property="og:description" content="最近项目里的直播聊天系统使用了WebSocket进行通信，故了解了一番WebSocket的知识。
+WebSocket协议细解WebSocket协议和HTTP协议一样，也是应用层协议，都是基于TCP的，可靠性的传输协议。不同点主要有两点：
+
+
+WebSocket是双向通信协议，客户端与服务端都可以发送或接收信息
+
+
+
+WebSocket的连接需要HTTP的一次握手
+
+
+
+连接首先客户端发送一个请求，">
+<meta property="og:updated_time" content="2019-04-06T13:49:37.316Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WebSocket">
+<meta name="twitter:description" content="最近项目里的直播聊天系统使用了WebSocket进行通信，故了解了一番WebSocket的知识。
+WebSocket协议细解WebSocket协议和HTTP协议一样，也是应用层协议，都是基于TCP的，可靠性的传输协议。不同点主要有两点：
+
+
+WebSocket是双向通信协议，客户端与服务端都可以发送或接收信息
+
+
+
+WebSocket的连接需要HTTP的一次握手
+
+
+
+连接首先客户端发送一个请求，">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2019/04/06/WebSocket/"/>
+
+  <title> WebSocket | Jianless的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Jianless的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                WebSocket
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2019-04-06T21:42:48+08:00" content="2019-04-06">
+              2019-04-06
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2019/04/06/WebSocket/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/04/06/WebSocket/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2019/04/06/WebSocket/" class="leancloud_visitors" data-flag-title="WebSocket">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近项目里的直播聊天系统使用了WebSocket进行通信，故了解了一番WebSocket的知识。</p>
+<h3 id="WebSocket协议细解"><a href="#WebSocket协议细解" class="headerlink" title="WebSocket协议细解"></a>WebSocket协议细解</h3><p>WebSocket协议和HTTP协议一样，也是应用层协议，都是基于TCP的，可靠性的传输协议。不同点主要有两点：</p>
+<ul>
+<li><ol>
+<li>WebSocket是双向通信协议，客户端与服务端都可以发送或接收信息</li>
+</ol>
+</li>
+<li><ol>
+<li>WebSocket的连接需要HTTP的一次握手</li>
+</ol>
+</li>
+</ul>
+<h4 id="连接"><a href="#连接" class="headerlink" title="连接"></a>连接</h4><p>首先客户端发送一个请求，报文格式规定：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">方法必须位GET方法</div><div class="line">HTTP版本不能低于1.1</div><div class="line">必须包含Upgrade头部，值必须为websocket</div><div class="line">必须包含Sec-WebSocket-Key头部，值是一个Base64编码的16字节随机字符串。</div><div class="line">必须包含Sec-WebSocket-Version头部，值必须为13</div></pre></td></tr></table></figure>
+<p>其中Upgrade、Connection字段，就是告诉服务端，我要建立一个WebSocket的连接。即为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">GET /chat HTTP/1.1</div><div class="line">Host: server.example.com</div><div class="line">Upgrade: websocket</div><div class="line">Connection: Upgrade</div><div class="line">Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==</div><div class="line">Sec-WebSocket-Protocol: chat, superchat</div><div class="line">Sec-WebSocket-Version: 13</div><div class="line">Origin: http://example.com</div></pre></td></tr></table></figure>
+<p>上面是建立WebSocket连接的一个请求头，类似HTTP的连接。</p>
+<p>服务端验证客户端的握手包符合规范之后也会发送一个握手包给客户端：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">HTTP/1.1 101 Switching Protocols</div><div class="line">Upgrade: websocket</div><div class="line">Connection: Upgrade</div><div class="line">Sec-WebSocket-Accept: HSmrc0sMlYUkAGmm5OPpG2HaGWk=</div><div class="line">Sec-WebSocket-Protocol: chat</div></pre></td></tr></table></figure>
+<p>规范为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">必须包含Connection头部，值必须为Upgrade</div><div class="line">必须包含一个Upgrade头部，值必须为websocket</div><div class="line">必须包含一个Sec-Websocket-Accept头部</div></pre></td></tr></table></figure>
+<p>Sec-WebSocket-Accept的值与Sec-WebSocket-Key是对应的，由计算方式计算而来:</p>
+<ol>
+<li>将Sec-WebSocket-Key跟258EAFA5-E914-47DA-95CA-C5AB0DC85B11拼接。</li>
+<li>通过SHA1计算出摘要，并转成base64字符串。</li>
+</ol>
+<p>客户端收到服务端的握手包之后，验证Sec-Websocket-Accept的值，验证正确后连接成功，之后就跟HTTP协议没有什么关系了，数据传输完全就是WebSocket协议的内容。</p>
+<h4 id="数据交换"><a href="#数据交换" class="headerlink" title="数据交换"></a>数据交换</h4><p>在实际讲解数据交换之前，我们先来看下WebSocket的数据帧格式。从<a href="https://tools.ietf.org/html/rfc6455#section-5.2" target="_blank" rel="external">RFC文档</a>可以看出数据帧格式为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">0                   1                   2                   3</div><div class="line">0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</div><div class="line">+-+-+-+-+-------+-+-------------+-------------------------------+</div><div class="line">|F|R|R|R| opcode|M| Payload len |    Extended payload length    |</div><div class="line">|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |</div><div class="line">|N|V|V|V|       |S|             |   (if payload len==126/127)   |</div><div class="line">| |1|2|3|       |K|             |                               |</div><div class="line">+-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +</div><div class="line">|     Extended payload length continued, if payload len == 127  |</div><div class="line">+ - - - - - - - - - - - - - - - +-------------------------------+</div><div class="line">|                               |Masking-key, if MASK set to 1  |</div><div class="line">+-------------------------------+-------------------------------+</div><div class="line">| Masking-key (continued)       |          Payload Data         |</div><div class="line">+-------------------------------- - - - - - - - - - - - - - - - +</div><div class="line">:                     Payload Data continued ...                :</div><div class="line">+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +</div><div class="line">|                     Payload Data continued ...                |</div><div class="line">+---------------------------------------------------------------+</div></pre></td></tr></table></figure>
+<p>FIN: 如果是1，表示这是消息（message）的最后一个分片（fragment），如果是0，表示不是是消息（message）的最后一个分片（fragment）。</p>
+<p>RSV1, RSV2, RSV3：扩展使用，一般情况下全为0。</p>
+<p>opcode：操作代码，Opcode的值决定了应该如何解析后续的数据（data payload）。如果操作代码是不认识的，那么接收端应该断开连接。代码如下</p>
+<ul>
+<li>%x0：表示一个延续帧。当Opcode为0时，表示本次数据传输采用了数据分片，当前收到的数据帧为其中一个数据分片</li>
+<li>%x1：表示这是一个文本帧（frame）</li>
+<li>%x2：表示这是一个二进制帧（frame）</li>
+<li>%x3-7：保留的操作代码，用于后续定义的非控制帧。</li>
+<li>%x8：表示连接断开。</li>
+<li>%x9：表示这是一个ping操作。</li>
+<li>%xA：表示这是一个pong操作。</li>
+<li>%xB-F：保留的操作代码，用于后续定义的控制帧。</li>
+</ul>
+<p>Mask：表示是否要对数据（data payload）进行掩码操作。从客户端向服务端发送数据时，需要对数据进行掩码操作；从服务端向客户端发送数据时，不需要对数据进行掩码操作。如果服务端接收到的数据没有进行过掩码操作，服务端需要断开连接。</p>
+<p>Payload length：数据的长度，单位是字节。</p>
+<p>Payload Data：传输的数据。</p>
+<p>一旦WebSocket客户端、服务端建立连接后，后续的操作都是基于数据帧的传递。<br>WebSocket根据opcode来区分操作的类型。比如0x8表示断开连接，0x0-0x2表示数据交互。</p>
+<p>WebSocket的每条消息可能被切分成多个数据帧。当WebSocket的接收方收到一个数据帧时，会根据FIN的值来判断，是否已经收到消息的最后一个数据帧。FIN=1表示当前数据帧为消息的最后一个数据帧，此时接收方已经收到完整的消息，可以对消息进行处理。FIN=0，则接收方还需要继续监听接收其余的数据帧。</p>
+<h4 id="连接保持-心跳"><a href="#连接保持-心跳" class="headerlink" title="连接保持(心跳)"></a>连接保持(心跳)</h4><p>WebSocket为了保持客户端、服务端的实时双向通信，需要确保客户端、服务端之间的TCP通道保持连接没有断开。有些场景，客户端、服务端虽然长时间没有数据往来，但仍需要保持连接。这个时候，可以采用心跳来实现。</p>
+<ul>
+<li>发送方-&gt;接收方：ping</li>
+<li>接收方-&gt;发送方：pong</li>
+</ul>
+<p>ping、pong的操作，对应的是WebSocket的两个控制帧，opcode分别是0x9、0xA。</p>
+<h3 id="iOS端WebScoket实现"><a href="#iOS端WebScoket实现" class="headerlink" title="iOS端WebScoket实现"></a>iOS端WebScoket实现</h3><p>我们iOS客户端使用了FaceBook的<a href="https://github.com/facebook/SocketRocket" target="_blank" rel="external">SocketRocket</a>来进行通信，SocketRocket内部实现了握手连接，发送与接收数据，发送ping，接收pong功能。我们使用暂时没有发现什么问题，唯一需要注意的是要自己实现心跳包及重连的代码。</p>
+<p>建立连接方法为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (id)initWithURLRequest:(NSURLRequest *)request</div></pre></td></tr></table></figure>
+<p>代理方法为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">- (void)webSocketDidOpen:(SRWebSocket *)webSocket;</div><div class="line">- (void)webSocket:(SRWebSocket *)webSocket didFailWithError:(NSError *)error;</div><div class="line">- (void)webSocket:(SRWebSocket *)webSocket didCloseWithCode:(NSInteger)code reason:(NSString *)reason wasClean:(BOOL)wasClean;</div><div class="line">- (void)webSocket:(SRWebSocket *)webSocket didReceivePong:(NSData *)pongPayload;</div></pre></td></tr></table></figure>
+<p>打开与关闭：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">- (void)open;</div><div class="line">- (void)close;</div></pre></td></tr></table></figure>
+<p>发送数据：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (void)send:(id)data;</div></pre></td></tr></table></figure>
+<p>发送ping:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (void)sendPing:(NSData *)data;</div></pre></td></tr></table></figure>
+<p>基本上用这几个方法就能实现想要的功能。因为我们要自己维持心跳连接及重连，所以还要再封装一层，代码见<a href="https://github.com/coderZhou10496/ZJWebSocket" target="_blank" rel="external">Github</a>。</p>
+<p>建立连接的时候，调用了SocketRocket的<code>- (void)setDelegateDispatchQueue:(dispatch_queue_t)queue</code>方法，用意是数据的接收全都在指定的队列里，放在子线程中进行，因为聊天功能要频繁的接收消息。所有我们创建了一个串行队列传给SocketRocket。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">self.delegateRecQueue = dispatch_queue_create(&quot;com.zj.socket.queue&quot;,DISPATCH_QUEUE_SERIAL);</div><div class="line"></div><div class="line">[self.webSocket setDelegateDispatchQueue:self.delegateRecQueue];</div></pre></td></tr></table></figure>
+<p>判断是否重连的机制为：</p>
+<p>当收到 <code>didFailWithError</code> 和 <code>didCloseWithCode</code>方法时，先判断是否是自己主动关闭了WebSocket连接，如果是自己主动关闭了连接，则不做处理；如果是未知错误而关闭了连接，则进行重连机制。重连的时候先判断是否有网，如果无网络的话，也没有重连的必要了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">- (void)reConnect &#123;</div><div class="line">    if(self.connectType == WebSocketConnect) &#123;</div><div class="line">        return;</div><div class="line">    &#125;</div><div class="line">    [self webSocketClose];</div><div class="line">    </div><div class="line">    if (self.reConnectTime &gt;= 32) &#123;</div><div class="line">        self.reConnectTime = 1;</div><div class="line">        return;</div><div class="line">    &#125;</div><div class="line">    __block NSInteger time = self.reConnectTime;</div><div class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(time * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</div><div class="line">        NSLog(@&quot;重连&quot;);</div><div class="line">        time = time * 2;</div><div class="line">        self.reConnectTime = time;</div><div class="line">        [self webSocketOpen];</div><div class="line">    &#125;);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>重连之前要确保在主线程中进行，并且确保之前的连接已经关闭了。</p>
+<p>连接成功后创建心跳定时器，定时发送ping数据，调用SocketRocket的<code>sendPing</code>方法就行，这个方法内部是做数据处理，标记这个数据为ping数据：<br>，心跳的数据格式和服务端协商好就行了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">#pragma mark - 心跳定时器</div><div class="line">- (void)createHeartBeat &#123;</div><div class="line">    dispatch_main_async_safe(^&#123;</div><div class="line">        [self cancelHeartBeat];</div><div class="line">        </div><div class="line">        self.heartBeat = [NSTimer timerWithTimeInterval:30 target:self selector:@selector(heartBeatFire) userInfo:nil repeats:YES];</div><div class="line">        </div><div class="line">        [[NSRunLoop currentRunLoop]addTimer:self.heartBeat forMode:NSRunLoopCommonModes];</div><div class="line">    &#125;)</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)sendPing &#123;</div><div class="line">    if([self netWorkReachable]) &#123;</div><div class="line">        NSDictionary *dicData = @&#123;&#125;;</div><div class="line">        NSData *data = [NSJSONSerialization dataWithJSONObject:dicData options:NSJSONWritingPrettyPrinted error:nil];</div><div class="line">        [self.webSocket sendPing:data];</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在代码里我专门创建了一个用于接收消息的类<code>ZJMessageHandler</code>，WebSocket收到的消息都会交由这个类进行处理，处理后再交给上层不同的业务方。</p>
+<p>详细代码见<a href="https://github.com/coderZhou10496/ZJWebSocket" target="_blank" rel="external">Github</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/16/自律以自救/" rel="next" title="自律以自救">
+                <i class="fa fa-chevron-left"></i> 自律以自救
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2019/04/06/WebSocket/"
+           data-title="WebSocket" data-url="http://coderzhou.com/2019/04/06/WebSocket/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">30</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#WebSocket协议细解"><span class="nav-number">1.</span> <span class="nav-text">WebSocket协议细解</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#连接"><span class="nav-number">1.1.</span> <span class="nav-text">连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据交换"><span class="nav-number">1.2.</span> <span class="nav-text">数据交换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#连接保持-心跳"><span class="nav-number">1.3.</span> <span class="nav-text">连接保持(心跳)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#iOS端WebScoket实现"><span class="nav-number">2.</span> <span class="nav-text">iOS端WebScoket实现</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>
