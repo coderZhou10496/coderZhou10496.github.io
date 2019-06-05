@@ -1,0 +1,837 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="Objective-C 的方法之所以可以 hook 是因为它的运行时特性，Objective-C 的方法调用在底层都是 msg_send（id,SEL）的形式，这为我们提供了交换方法实现（IMP）的机会，但 C 函数在编译链接时就确定了函数指针的地址偏移量（Offset），这个偏移量在编译好的可执行文件中是固定的。既然 C 函数的指针地址是相对固定且不可修改的，那么 fishhook 又是怎么实现">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fishhook探究">
+<meta property="og:url" content="http://coderzhou.com/2019/06/05/fishhook/index.html">
+<meta property="og:site_name" content="Jianless的博客">
+<meta property="og:description" content="Objective-C 的方法之所以可以 hook 是因为它的运行时特性，Objective-C 的方法调用在底层都是 msg_send（id,SEL）的形式，这为我们提供了交换方法实现（IMP）的机会，但 C 函数在编译链接时就确定了函数指针的地址偏移量（Offset），这个偏移量在编译好的可执行文件中是固定的。既然 C 函数的指针地址是相对固定且不可修改的，那么 fishhook 又是怎么实现">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_mach-o%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%BB%93%E6%9E%84.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_load_commands_1.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_image_list.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_load_commands_2.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_VM_Address_1.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_VM_Address_2.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_first.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_1.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_2.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_3.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_4.jpg">
+<meta property="og:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_liucheng.png">
+<meta property="og:updated_time" content="2019-06-05T13:03:04.224Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="fishhook探究">
+<meta name="twitter:description" content="Objective-C 的方法之所以可以 hook 是因为它的运行时特性，Objective-C 的方法调用在底层都是 msg_send（id,SEL）的形式，这为我们提供了交换方法实现（IMP）的机会，但 C 函数在编译链接时就确定了函数指针的地址偏移量（Offset），这个偏移量在编译好的可执行文件中是固定的。既然 C 函数的指针地址是相对固定且不可修改的，那么 fishhook 又是怎么实现">
+<meta name="twitter:image" content="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_mach-o%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%BB%93%E6%9E%84.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://coderzhou.com/2019/06/05/fishhook/"/>
+
+  <title> fishhook探究 | Jianless的博客 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Jianless的博客</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">专注于iOS开发</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                fishhook探究
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2019-06-05T20:57:26+08:00" content="2019-06-05">
+              2019-06-05
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2019/06/05/fishhook/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/06/05/fishhook/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2019/06/05/fishhook/" class="leancloud_visitors" data-flag-title="fishhook探究">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Objective-C 的方法之所以可以 hook 是因为它的运行时特性，Objective-C 的方法调用在底层都是 msg_send（id,SEL）的形式，这为我们提供了交换方法实现（IMP）的机会，但 C 函数在编译链接时就确定了函数指针的地址偏移量（Offset），这个偏移量在编译好的可执行文件中是固定的。既然 C 函数的指针地址是相对固定且不可修改的，那么 fishhook 又是怎么实现 对 C 函数的 hook 呢？其实自定义的 C 函数 fishhook 也 Hook 不了，它只能HOOK Mach-O 外部（共享缓存库中）的函数,而苹果的共享缓存库不会被编译进我们的 MachO 文件，而是在动态链接时才去重新绑定，所以给了我们 hook 系统 C 函数的机会。另外，理解fishhook需要大量的mach-o、编译链接知识、</p>
+<h3 id="ASLR"><a href="#ASLR" class="headerlink" title="ASLR"></a>ASLR</h3><p>随机内存布局（ASLR）是操作系统为防止缓冲区溢出攻击而存在的内存保护机制。该机制通过在程序载入内存时，将地址进行随机偏移来实现,增加攻击者预测目的地址的难度，防止攻击者直接定位攻击代码位置，达到阻止溢出攻击的目的。</p>
+<p>所以，Mach-O 文件每次加载进内存的时候地址都是不一样的，这个偏移量是每次程序启动时给出的随机值，可以通过 <code>_dyld_get_image_vmaddr_slide</code> 函数获得。</p>
+<h3 id="PIC-Position-Indepent-Code"><a href="#PIC-Position-Indepent-Code" class="headerlink" title="PIC(Position Indepent Code)"></a>PIC(Position Indepent Code)</h3><p>动态链接将相关符号的绑定工作推迟到程序被加载到内存中执行的时候，这不仅减少了程序的编译时间，而且也使得库文件能够真正的被不同的程序所共享。此处的“共享”有两点含义：一是指库文件在操作系统中只存在一份，而不是像静态链接那样将库文件给每个程序都拷贝一份；二是指在程序运行的过程中，共享库的 text 段的内容可以被不同的进程所共享。</p>
+<p>比如进程A加载了一个动态库，那么进程B也要加载这个动态库，这样麻烦就来了，动态库中符号的相关地址是基于进程A的，在进程B中是无法工作的，所以这个时候就用到了PIC技术。</p>
+<p>PIC技术让动态库可以被加载到任何地址并正确运行。<br>使用PIC的Mach-O文件，在引用符号（比如 printf）的时候，并不是直接去找到符号的地址（编译期并不知道运行时printf的函数地址),而是通过在 <code>__DATA Segment</code> 上创建一个指针，等到启动的时候，dyld 动态的去做绑定（bind），这样 <code>__DATA Segment</code> 上的指针就指向了 printf 的实现。即：</p>
+<p>当你的应用程序想要调用 Mach-O 文件外部的函数的时候，或者说如果 Mach-O 内部需要调用系统的库函数时，Mach-O 文件会：</p>
+<ol>
+<li>先在 Mach-O 文件的 _DATA 段中建立一个指针（8字节的数据，放的全是0），这个指针变量指向外部函数。</li>
+<li>DYLD 会动态的进行绑定！将 Mach-O 中的 _DATA 段中的指针，指向外部函数</li>
+</ol>
+<h3 id="dyld-加载回调"><a href="#dyld-加载回调" class="headerlink" title="dyld 加载回调"></a>dyld 加载回调</h3><p>利用dyld相关接口，我们可以注册image装载的监听方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">extern void _dyld_register_func_for_add_image(void (func)(const struct mach_header mh, intptr_t vmaddr_slide));</div></pre></td></tr></table></figure>
+<p>调用<code>_dyld_register_func_for_add_image</code>注册监听方法后，当前已经装载的image(动态库等)会立刻触发回调，<br>之后的image会在装载的时候触发回调。</p>
+<p>在<code>__DATA</code>段中，有两个Sections和动态符号绑定有关：</p>
+<p><code>__nl_symbol_ptr</code> 存储了non-lazily绑定的符号，这些符号在mach-o加载的时候绑定。<br><code>__la_symbol_ptr</code> 存储了lazy绑定的符号（方法），这些方法在第一调用的时候，</p>
+<h3 id="Mach-O"><a href="#Mach-O" class="headerlink" title="Mach-O"></a>Mach-O</h3><p>程序启动的时候 Mach-O 文件会被 DYLD （动态加载器）加载进内存。加载完 Mach-O 后，DYLD接着会去加载 Mach-O 所依赖的动态库。</p>
+<p>Mach-O文件分为三部分：</p>
+<h4 id="Header"><a href="#Header" class="headerlink" title="Header"></a>Header</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">struct mach_header_64 &#123;</div><div class="line">    uint32_t    magic;      /* mach magic number identifier */</div><div class="line">    cpu_type_t  cputype;    /* cpu specifier */</div><div class="line">    cpu_subtype_t   cpusubtype; /* machine specifier */</div><div class="line">    uint32_t    filetype;   /* 文件类型 */</div><div class="line">    uint32_t    ncmds;      /* load commadns的个数 */</div><div class="line">    uint32_t    sizeofcmds; /* load commands的总大小 */</div><div class="line">    uint32_t    flags;      /* 动态连接器标志*/</div><div class="line">    uint32_t    reserved;   /* 保留*/</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<h4 id="Load-commands"><a href="#Load-commands" class="headerlink" title="Load commands"></a>Load commands</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">struct load_command &#123;</div><div class="line">    uint32_t cmd;       /*  load command的类型 */</div><div class="line">    uint32_t cmdsize;   /*  command 的长度 */</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<h4 id="LC-SEGMENT"><a href="#LC-SEGMENT" class="headerlink" title="LC_SEGMENT"></a>LC_SEGMENT</h4><p>LC_SEGMENT_64 命令表示将相应的 segment 映射到虚拟地址空间中。一个程序一般会分为多个段，不同类型的数据放入不同的段中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">  struct segment_command_64 &#123; /* for 64-bit architectures */</div><div class="line">    uint32_t    cmd;        /* LC_SEGMENT_64 */</div><div class="line">    uint32_t    cmdsize;    /* includes sizeof section_64 structs */</div><div class="line">    char        segname[16];    /* 表示是段的名称。常见的有：__PAGEZERO、__LINKEDIT、__TEXT、__DATA */</div><div class="line">    uint64_t    vmaddr;     /* 当前segment加载的虚拟内存起始地址 */</div><div class="line">    uint64_t    vmsize;     /* 段所占的虚拟内存的大小  */</div><div class="line">    uint64_t    fileoff;    /* segment在文件中的偏移 */</div><div class="line">    uint64_t    filesize;   /* segment在文件中的长度 */</div><div class="line">    vm_prot_t   maxprot;    /* 最大的保护级别 */</div><div class="line">    vm_prot_t   initprot;   /* 初始化的保护级别 */</div><div class="line">    uint32_t    nsects;     /* 包含sections的个数  */</div><div class="line">    uint32_t    flags;      /* 标志位 */</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<h5 id="PAGEZERO"><a href="#PAGEZERO" class="headerlink" title="__PAGEZERO"></a>__PAGEZERO</h5><p>__PAGEZERO 是在可执行文件有的，动态库里没有。这个段开始地址为0（NULL指针指向的位置），是一个不可读、不可写、不可执行的空间，能够在空指针访问时抛出异常</p>
+<h5 id="TEXT"><a href="#TEXT" class="headerlink" title="__TEXT"></a>__TEXT</h5><p>__TEXT 是代码段，里面主要是存放代码的，该段是可读可执行，但是不可写。</p>
+<h5 id="DATA"><a href="#DATA" class="headerlink" title="__DATA"></a>__DATA</h5><p>__DATA 是数据段，里面主要是存放数据，该段是可读可写，但不可执行</p>
+<h5 id="LINKEDIT"><a href="#LINKEDIT" class="headerlink" title="__LINKEDIT"></a>__LINKEDIT</h5><p>__LINKEDIT 段用于存放签名信息，该段是只可读，不可写不可执行。</p>
+<h4 id="LC-SYMTAB"><a href="#LC-SYMTAB" class="headerlink" title="LC_SYMTAB"></a>LC_SYMTAB</h4><p>LC_SYMTAB 是符号表和字符串表的偏移信息</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">struct symtab_command &#123;</div><div class="line">	uint32_t	cmd;		/* LC_SYMTAB */</div><div class="line">	uint32_t	cmdsize;	/* sizeof(struct symtab_command) */</div><div class="line">	uint32_t	symoff;		/* 表示符号表的偏移 */</div><div class="line">	uint32_t	nsyms;		/* 符号表条目的个数 */</div><div class="line">	uint32_t	stroff;		/* 字符串表在文件中的偏移 */</div><div class="line">	uint32_t	strsize;	/* 字符串表的大小 */</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_mach-o%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%BB%93%E6%9E%84.jpg" alt="image"></p>
+<h3 id="Symbol-Table"><a href="#Symbol-Table" class="headerlink" title="Symbol Table"></a>Symbol Table</h3><p>Symbol Table: 即符号表。每个目标文件都有自己的符号表，记录了符号的映射。符号表的结构是一个连续的列表，其中的每一项都是一个 struct nlist。<br>符号表里的内容就是描述某个符号的名称、类型、地址、索引、连接方式等信息。通过符号表可以找到特定符号在指针表中的索引。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">struct nlist_64 &#123;</div><div class="line">    union &#123;</div><div class="line">        uint32_t  n_strx; /* index into the string table */</div><div class="line">    &#125; n_un;</div><div class="line">    uint8_t n_type;        /* type flag, see below */</div><div class="line">    uint8_t n_sect;        /* section number or NO_SECT */</div><div class="line">    uint16_t n_desc;       /* see &lt;mach-o/stab.h&gt; */</div><div class="line">    uint64_t n_value;      /* value of this symbol (or stab offset) */</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>其中 n_strx 表示符号名在字符串表中的偏移量，用于表示函数名。</p>
+<h3 id="String-Table"><a href="#String-Table" class="headerlink" title="String Table"></a>String Table</h3><p>在程序中，字符串的长度是不固定的，所以会将其放在 string table 中，然后存储它在 string table 中的偏移。如果其他部分想要引用某个字符串，那么他首先需要找到 string table 的起始地址，然后根据偏移量找到相应字符串的起始位置并向后读取字符，直到遇见 <code>\0</code>才会停止读取过程，最后返回读到的字符串。</p>
+<p>这也是 <code>LC_SYMTAB</code>额外记录 string table 地址的原因，string table 通常用于是放置 Section 名、变量名、符号名的字符串表，字符串末尾自带的 \0 为分隔符（机器码00）。知道 strtab 的基地址（base），然后加上在 Symbol Table 中找到的该字符串的偏移量（offset）就可以找到这个字符串。</p>
+<h3 id="fishhook解析"><a href="#fishhook解析" class="headerlink" title="fishhook解析"></a>fishhook解析</h3><p>对于程序引用的动态库中的函数，链接器会将它的地址放在 <code>__la_symbol_ptr</code>中，而对于动态库的全局数据，则是放在 <code>__nl_symbol_ptr</code>中，所以整个 fishhook 的核心工作就是替换 <code>__la_symbol_ptr</code>以及 <code>__nl_symbol_ptr</code>的内容。</p>
+<p><code>fishhook.c</code> 简短的源码中，执行 rebind 逻辑的核心函数有两个：<code>rebind_symbols_for_image</code>和<code>perform_rebinding_with_section</code>；前者负责找到目标 section，后者在 section 里根据符号进行真正的 rebind</p>
+<h4 id="rebind-symbols-for-image"><a href="#rebind-symbols-for-image" class="headerlink" title="rebind_symbols_for_image"></a>rebind_symbols_for_image</h4><p> <code>rebind_symbols_for_image</code>方法主要做了四件事：</p>
+<ol>
+<li>在 <code>load commands</code> 里找到 <code>linkedit_segment</code>、<code>symtab_cmd</code>、<code>dysymtab_cmd</code></li>
+<li>通过 <code>linkedit_segment</code> 找到 <code>symtab、strtab</code></li>
+<li>在 <code>load commands</code> 里找到 <code>__DATA,__la_symbol_ptr 和 __DATA,__nl_symbol_ptr</code></li>
+<li>调用 <code>perform_rebinding_with_section</code></li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">// header的首地址+mach_header的内存大小</div><div class="line">    // 跳过 Mach-O 的 Header 结构，开始遍历 Load Commands,也就是直接到Load Commands的地址</div><div class="line">    uintptr_t cur = (uintptr_t)header + sizeof(mach_header_t);</div><div class="line">    // 遍历Load Commondds 找到上面三个遍历</div><div class="line">    for (uint i = 0; i &lt; header-&gt;ncmds; i++, cur += cur_seg_cmd-&gt;cmdsize) &#123;</div><div class="line">        cur_seg_cmd = (segment_command_t *)cur;</div><div class="line">        // 如果是LC_SEGMENT_64</div><div class="line">        if (cur_seg_cmd-&gt;cmd == LC_SEGMENT_ARCH_DEPENDENT) &#123;</div><div class="line">            // 找到linkedit</div><div class="line">            if (strcmp(cur_seg_cmd-&gt;segname, SEG_LINKEDIT) == 0) &#123;</div><div class="line">                linkedit_segment = cur_seg_cmd;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        // 如果是LC_SYMTAB,就找到了symtab_cmd</div><div class="line">        else if (cur_seg_cmd-&gt;cmd == LC_SYMTAB) &#123;</div><div class="line">            symtab_cmd = (struct symtab_command*)cur_seg_cmd;</div><div class="line">        &#125;</div><div class="line">        // 如果是LC_DYSYMTAB,就找到了dysymtab_cmd</div><div class="line">        else if (cur_seg_cmd-&gt;cmd == LC_DYSYMTAB) &#123;</div><div class="line">            dysymtab_cmd = (struct dysymtab_command*)cur_seg_cmd;</div><div class="line">        &#125;</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<p>首先获得 <code>load commands</code> 的起始地址，可以配合 MachOView 查看更直观：</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_load_commands_1.jpg" alt="image"></p>
+<p>首先我们在程序里打断点，可以直接看到起始地址为：4300685344</p>
+<p>在控制台打印 <code>image list</code> 可以得到程序偏移地址为：0x0000000100574000</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_image_list.jpg" alt="image"></p>
+<p>从 MachOView 中可以看到 <code>load commands</code> 相对于mach-o文件的偏移地址为：0x20</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_load_commands_2.jpg" alt="image"></p>
+<p>0x0000000100574000 +  0x20 = 0x100574020</p>
+<p>0x100574020 转换成16进制即为 4300685344。</p>
+<p>所以fishhook的源码配合MachOView更容易理解。</p>
+<p>从 <code>header-&gt;ncmds</code> 里获得 <code>load commands</code> 的数量，从 <code>cur_seg_cmd-&gt;cmdsize</code> 获得每一个segment的大小，逐次遍历，<br>直到找到 <code>linkedit_segment</code>、<code>symtab_cmd</code>、<code>dysymtab_cmd</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line">/*</div><div class="line"> MachO文件地址 = Linkedit虚拟地址 - 当前段在文件中的偏移量 + ASLR(slide)</div><div class="line"> **/</div><div class="line">uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment-&gt;vmaddr - linkedit_segment-&gt;fileoff;</div><div class="line"></div><div class="line">// 获取symbol_table符号表的真实地址：符号表的地址 = 基址 + 符号表偏移量,实际上是一个nlist_t数组</div><div class="line">nlist_t *symtab = (nlist_t *)(linkedit_base + symtab_cmd-&gt;symoff);</div><div class="line"></div><div class="line">// 获取string_table字符串表的真实地址：字符串表的地址 = 基址 + 字符串表偏移量</div><div class="line">char *strtab = (char *)(linkedit_base + symtab_cmd-&gt;stroff);</div><div class="line"></div><div class="line">// 获取indirect_symtab间接符号表的真实地址：间接符号表地址 = 基址 + 动态符号表偏移量</div><div class="line">uint32_t *indirect_symtab = (uint32_t *)(linkedit_base + dysymtab_cmd-&gt;indirectsymoff);</div><div class="line"></div><div class="line">// 同样的，得到跳过mach_header的地址,得到Load Commonds的地址</div><div class="line">cur = (uintptr_t)header + sizeof(mach_header_t);</div><div class="line">// 遍历Load Commonds，找到对应符号进行重新绑定</div><div class="line">for (uint i = 0; i &lt; header-&gt;ncmds; i++, cur += cur_seg_cmd-&gt;cmdsize) &#123;</div><div class="line">    cur_seg_cmd = (segment_command_t *)cur;</div><div class="line">    if (cur_seg_cmd-&gt;cmd == LC_SEGMENT_ARCH_DEPENDENT) &#123;</div><div class="line">        // 如果不是__DATA段，也不是__DATA_CONST段，直接跳过</div><div class="line">        if (strcmp(cur_seg_cmd-&gt;segname, SEG_DATA) != 0 &amp;&amp;</div><div class="line">            strcmp(cur_seg_cmd-&gt;segname, SEG_DATA_CONST) != 0) &#123;</div><div class="line">            continue;</div><div class="line">        &#125;</div><div class="line">        // 遍历所有的segment</div><div class="line">        for (uint j = 0; j &lt; cur_seg_cmd-&gt;nsects; j++) &#123;</div><div class="line">            section_t *sect =</div><div class="line">            (section_t *)(cur + sizeof(segment_command_t)) + j;</div><div class="line">            // 找懒加载表S_LAZY_SYMBOL_POINTERS</div><div class="line">            if ((sect-&gt;flags &amp; SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) &#123;</div><div class="line">                // 重绑定的函数</div><div class="line">                perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);</div><div class="line">            &#125;</div><div class="line">            // 找非懒加载表S_NON_LAZY_SYMBOL_POINTERS</div><div class="line">            if ((sect-&gt;flags &amp; SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) &#123;</div><div class="line">                // 重绑定的函数</div><div class="line">                perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>上面的 <code>uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment-&gt;vmaddr - linkedit_segment-&gt;fileoff</code> 这一行代码配合MachOView也挺容易理解的。</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_VM_Address_1.jpg" alt="image"></p>
+<p>从程序断点中可以看到 <code>`linkedit_segment-&gt;vmaddr</code> 的值为 4295016448。这正好对应了MachOView的值</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_VM_Address_2.jpg" alt="image"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment-&gt;vmaddr - linkedit_segment-&gt;fileoff;</div></pre></td></tr></table></figure>
+<p>slide的值，即为ASLR的值，可以通过 <code>_dyld_get_image_vmaddr_slide</code> 函数获得，可以通过程序断点得出为5718016。</p>
+<p>slide = 5718016,</p>
+<p>vmaddr = 4295016448</p>
+<p>fileoff = 49152</p>
+<p>所以：linkedit_base = 5718016 + 4295016448 - 49152 = 4300685312</p>
+<p>4300685312 转换成 16进制为 0x0000000100574000，即mach-0的起始内存地址。</p>
+<p>接下来，会在 <code>__DATA</code> 段中寻找类型为 <code>S_LAZY_SYMBOL_POINTERS</code> 以及 <code>S_NON_LAZY_SYMBOL_POINTERS</code> 的节，二者分别包含我们要替换的 <code>__la_symbol_ptr</code> 以及 <code>__nl_symbol_ptr</code>，然后调用 <code>perform_rebinding_with_section</code> 函数。</p>
+<h4 id="perform-rebinding-with-section"><a href="#perform-rebinding-with-section" class="headerlink" title="perform_rebinding_with_section"></a>perform_rebinding_with_section</h4><p>找到<code>S_LAZY_SYMBOL_POINTERS</code>或<code>S_LAZY_SYMBOL_POINTERS</code>后会进入下面的方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">// sect为Section，symtab为符号表，strtab字符串表，indirect_symtab间接符号表</div><div class="line">static void perform_rebinding_with_section(struct rebindings_entry *rebindings,</div><div class="line">                                           section_t *section,</div><div class="line">                                           intptr_t slide,</div><div class="line">                                           nlist_t *symtab,//符号表</div><div class="line">                                           char *strtab, // 字符串表</div><div class="line">                                           uint32_t *indirect_symtab)  &#123; // 间接符号表</div></pre></td></tr></table></figure>
+<p>然后就是遍历section，查找需要hook的符号</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line">    for (uint i = 0; i &lt; section-&gt;size / sizeof(void *); i++) &#123;</div><div class="line">        // symtab_index就是indirect_symbol中data的值,也是符号表的索引</div><div class="line">        uint32_t symtab_index = indirect_symbol_indices[i];</div><div class="line">        if (symtab_index == INDIRECT_SYMBOL_ABS || symtab_index == INDIRECT_SYMBOL_LOCAL ||</div><div class="line">            symtab_index == (INDIRECT_SYMBOL_LOCAL   | INDIRECT_SYMBOL_ABS)) &#123;</div><div class="line">            continue;</div><div class="line">        &#125;</div><div class="line">        </div><div class="line">        // 根据symtab_index(indirect_symbol中data的值)去访问symbol_table，获取到symbol_table中的偏移offset(即symbol_table中data的值，这个值也是字符串表中的偏移值)</div><div class="line">        uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;</div><div class="line">        </div><div class="line">        // 访问string_table，根据strtab_offset获取symbol_name(函数名)</div><div class="line">        char *symbol_name = strtab + strtab_offset;</div><div class="line">        </div><div class="line">        // string_table中的所有函数名都是以&quot;_&quot;开始的，所以一个函数一定有两个字符</div><div class="line">        bool symbol_name_longer_than_1 = symbol_name[0] &amp;&amp; symbol_name[1];</div><div class="line">        </div><div class="line">        ///依次枚举struct rebindings_entry 结构，判断时候有和当前函数指针相等的带替换的函数。</div><div class="line">        struct rebindings_entry *cur = rebindings;</div><div class="line">        </div><div class="line">        while (cur) &#123;</div><div class="line">            // 循环每个entry中需要重绑定的函数</div><div class="line">            for (uint j = 0; j &lt; cur-&gt;rebindings_nel; j++) &#123;</div><div class="line">                // 判断symbol_name是否是一个正确的函数名</div><div class="line">                // 需要被重绑定的函数名是否与当前symbol_name相等</div><div class="line">                if (symbol_name_longer_than_1 &amp;&amp;</div><div class="line">                    strcmp(&amp;symbol_name[1], cur-&gt;rebindings[j].name) == 0) &#123;</div><div class="line">                    // 判断replaced是否存在</div><div class="line">                    // 判断replaced和老的函数是否是一样的</div><div class="line">                    if (cur-&gt;rebindings[j].replaced != NULL &amp;&amp;</div><div class="line">                        indirect_symbol_bindings[i] != cur-&gt;rebindings[j].replacement) &#123;</div><div class="line">                        // 将原函数的地址给新函数replaced</div><div class="line">                        *(cur-&gt;rebindings[j].replaced) = indirect_symbol_bindings[i];</div><div class="line">                        </div><div class="line">                    &#125;</div><div class="line">//                    rebindingSec++;</div><div class="line">//                    printf(&quot;rebindingSec%d\n&quot;,rebindingSec);</div><div class="line">                    // 将replacement赋值给刚刚找到的</div><div class="line">                    indirect_symbol_bindings[i] = cur-&gt;rebindings[j].replacement;</div><div class="line">                    goto symbol_loop;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            // 继续下一个需要绑定的函数</div><div class="line">            cur = cur-&gt;next;</div><div class="line">        &#125;</div><div class="line">    symbol_loop:;</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<p>结合MachOView，以<code>NSLog</code>为例逐步分析下：</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_first.jpg" alt="image"></p>
+<p>从<code>__la_symbol_ptr</code>这个section可以看到<code>NSLog</code>在第一列，mach-o有一个规律就是<code>__la_symbol_ptr</code>和<code>Indirect Symbols</code>是一一对应的，所以我们到<code>Indirect Symbols</code>第一行中，得到data = 0x7b，转成10进制为123</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_1.jpg" alt="image"></p>
+<p>从程序里断点也可以看出得到的symtab_index也为123</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_2.jpg" alt="image"></p>
+<p>然后到<code>Symbol Table</code>找到索引为123的那一行，可以得到value值为：0x9c</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_3.jpg" alt="image"></p>
+<p>再到<code>String Table</code> 中找到偏移为0x9c的字符，即 0xCF0C + 0x9c = 0xCFAB，即找到了NSLog，然后进行替换</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_find_second_4.jpg" alt="image"></p>
+<p>最后引用下官方流程图：</p>
+<p><img src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/fishhook/fishhook_liucheng.png" alt="image"></p>
+<ol>
+<li>找到  <code>__DATA</code>段中<code>__la_symbol_ptr</code>section的位置，偏移为1061</li>
+<li><code>Lazy Symbol Pointer Table</code>中第index行代表的函数和<code>Indirect Symbol Table</code>中第index行代表的函数是一样的，所以上图中 ‘Find entry with same index in indirect symbol table’，即1061也是间接符号表的偏移量</li>
+<li>reserved1+1601的带的是间接符号表对应的section，间接符号表的value值16343即为<code>Symbol Table</code>的偏移值</li>
+<li>找到<code>Symbol Table</code>的中对应16343的对象，其data值70026代表了符号在<code>String Table</code>的偏移值。</li>
+<li><code>String Table</code>起始地址加上偏移值，即strtab+70026即找到了要替换的符号，然后进行替换。</li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/04/06/WebSocket/" rel="next" title="WebSocket">
+                <i class="fa fa-chevron-left"></i> WebSocket
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2019/06/05/fishhook/"
+           data-title="fishhook探究" data-url="http://coderzhou.com/2019/06/05/fishhook/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="https://zhoujianimagebucket.oss-cn-hongkong.aliyuncs.com/zhoujian_headerImage.jpeg"
+               alt="Zhou Jian" />
+          <p class="site-author-name" itemprop="name">Zhou Jian</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">31</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coderZhou10496" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#ASLR"><span class="nav-number">1.</span> <span class="nav-text">ASLR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PIC-Position-Indepent-Code"><span class="nav-number">2.</span> <span class="nav-text">PIC(Position Indepent Code)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dyld-加载回调"><span class="nav-number">3.</span> <span class="nav-text">dyld 加载回调</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Mach-O"><span class="nav-number">4.</span> <span class="nav-text">Mach-O</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Header"><span class="nav-number">4.1.</span> <span class="nav-text">Header</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Load-commands"><span class="nav-number">4.2.</span> <span class="nav-text">Load commands</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#LC-SEGMENT"><span class="nav-number">4.3.</span> <span class="nav-text">LC_SEGMENT</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#PAGEZERO"><span class="nav-number">4.3.1.</span> <span class="nav-text">__PAGEZERO</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#TEXT"><span class="nav-number">4.3.2.</span> <span class="nav-text">__TEXT</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#DATA"><span class="nav-number">4.3.3.</span> <span class="nav-text">__DATA</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#LINKEDIT"><span class="nav-number">4.3.4.</span> <span class="nav-text">__LINKEDIT</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#LC-SYMTAB"><span class="nav-number">4.4.</span> <span class="nav-text">LC_SYMTAB</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Symbol-Table"><span class="nav-number">5.</span> <span class="nav-text">Symbol Table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#String-Table"><span class="nav-number">6.</span> <span class="nav-text">String Table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fishhook解析"><span class="nav-number">7.</span> <span class="nav-text">fishhook解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#rebind-symbols-for-image"><span class="nav-number">7.1.</span> <span class="nav-text">rebind_symbols_for_image</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#perform-rebinding-with-section"><span class="nav-number">7.2.</span> <span class="nav-text">perform_rebinding_with_section</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhou Jian</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"coderzhou"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("Bw40KBIPanRkt0iqTr7NLT6I-gzGzoHsz", "MQjFPSYkEazqnUv2rS7TOsui");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+</body>
+</html>

@@ -235,6 +235,160 @@
             
               
                 
+                <a class="post-title-link" href="/2018/07/26/dispatch_once线程安全/" itemprop="url">
+                  dispatch_once线程安全
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-07-26T22:04:18+08:00" content="2018-07-26">
+              2018-07-26
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/分类/技术/" itemprop="url" rel="index">
+                    <span itemprop="name">技术</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/07/26/dispatch_once线程安全/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/26/dispatch_once线程安全/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2018/07/26/dispatch_once线程安全/" class="leancloud_visitors" data-flag-title="dispatch_once线程安全">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">static dispatch_once_t onceToken;</div><div class="line">dispatch_once(&amp;onceToken, ^&#123;</div><div class="line">   ...</div><div class="line">&#125;);</div><div class="line">return instance;</div></pre></td></tr></table></figure>
+<p>说到单例，大家都会想到用<code>dispatch_once</code>实现，今天来探究一下<code>dispatch_once</code>内部如何操作的，如何保证线程安全的。</p>
+<p><code>dispatch_once_t</code>实质就是个<code>long</code>类型的基本变量：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">typedef long dispatch_once_t</div></pre></td></tr></table></figure>
+<p><code>dispatch_once</code> 函数实现为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">void  dispatch_once(dispatch_once_t *val, dispatch_block_t block) &#123;</div><div class="line"></div><div class="line">	dispatch_once_f(val, block, _dispatch_Block_invoke(block));</div><div class="line">	</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>将基本变量的指针及block传进去，<code>dispatch_block_t</code> 是自定义的 ，这个<code>block</code>就是我们要实现的初始化方法，无参数，无返回值</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">typedef void (^dispatch_block_t)(void);</div></pre></td></tr></table></figure>
+<p><code>_dispatch_Block_invoke</code>也是个宏定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">#define _dispatch_Block_invoke(bb) \</div><div class="line">		((dispatch_function_t)((struct Block_layout *)bb)-&gt;invoke)</div></pre></td></tr></table></figure>
+<p>它的作用是获得<code>block</code>内部的<code>invoke</code>的函数指针，这个指针指向的具体的<code>block</code>实现函数的调用地址，就是我们自己在<code>dispatch_block_t</code>里写的那段代码的具体实现地址。</p>
+<p>将变量地址，<code>block</code>，<code>invoke</code>三个参数传入<code>dispatch_once_f</code>方法里，下面继续分析<code>dispatch_once_f</code>方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">void</div><div class="line">dispatch_once_f(dispatch_once_t *val, void *ctxt, dispatch_function_t func)</div><div class="line">&#123;</div><div class="line">#if !DISPATCH_ONCE_INLINE_FASTPATH</div><div class="line">	if (likely(os_atomic_load(val, acquire) == DLOCK_ONCE_DONE)) &#123;</div><div class="line">		return;</div><div class="line">	&#125;</div><div class="line">#endif // !DISPATCH_ONCE_INLINE_FASTPATH</div><div class="line">	return dispatch_once_f_slow(val, ctxt, func);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>DISPATCH_ONCE_INLINE_FASTPATH</code>是判断当前编译环境，是真机还是模拟器。最终实现方法来到了<code>dispatch_once_f_slow</code>方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div></pre></td><td class="code"><pre><div class="line">static void</div><div class="line">dispatch_once_f_slow(dispatch_once_t *val, void *ctxt, dispatch_function_t func)</div><div class="line">&#123;</div><div class="line">#if DISPATCH_GATE_USE_FOR_DISPATCH_ONCE</div><div class="line">	dispatch_once_gate_t l = (dispatch_once_gate_t)val;</div><div class="line"></div><div class="line">	if (_dispatch_once_gate_tryenter(l)) &#123;</div><div class="line">		_dispatch_client_callout(ctxt, func);</div><div class="line">		_dispatch_once_gate_broadcast(l);</div><div class="line">	&#125; else &#123;</div><div class="line">		_dispatch_once_gate_wait(l);</div><div class="line">	&#125;</div><div class="line">#else</div><div class="line">	_dispatch_once_waiter_t volatile *vval = (_dispatch_once_waiter_t*)val;</div><div class="line">	struct _dispatch_once_waiter_s dow = &#123; &#125;;</div><div class="line">	_dispatch_once_waiter_t tail = &amp;dow, next, tmp;</div><div class="line">	dispatch_thread_event_t event;</div><div class="line"></div><div class="line">	if (os_atomic_cmpxchg(vval, NULL, tail, acquire)) &#123;</div><div class="line">		dow.dow_thread = _dispatch_tid_self();</div><div class="line">		_dispatch_client_callout(ctxt, func);</div><div class="line"></div><div class="line">		next = (_dispatch_once_waiter_t)_dispatch_once_xchg_done(val);</div><div class="line">		while (next != tail) &#123;</div><div class="line">			tmp = (_dispatch_once_waiter_t)_dispatch_wait_until(next-&gt;dow_next);</div><div class="line">			event = &amp;next-&gt;dow_event;</div><div class="line">			next = tmp;</div><div class="line">			_dispatch_thread_event_signal(event);</div><div class="line">		&#125;</div><div class="line">	&#125; else &#123;</div><div class="line">		_dispatch_thread_event_init(&amp;dow.dow_event);</div><div class="line">		next = *vval;</div><div class="line">		for (;;) &#123;</div><div class="line">			if (next == DISPATCH_ONCE_DONE) &#123;</div><div class="line">				break;</div><div class="line">			&#125;</div><div class="line">			if (os_atomic_cmpxchgv(vval, next, tail, &amp;next, release)) &#123;</div><div class="line">				dow.dow_thread = next-&gt;dow_thread;</div><div class="line">				dow.dow_next = next;</div><div class="line">				if (dow.dow_thread) &#123;</div><div class="line">					pthread_priority_t pp = _dispatch_get_priority();</div><div class="line">					_dispatch_thread_override_start(dow.dow_thread, pp, val);</div><div class="line">				&#125;</div><div class="line">				_dispatch_thread_event_wait(&amp;dow.dow_event);</div><div class="line">				if (dow.dow_thread) &#123;</div><div class="line">					_dispatch_thread_override_end(dow.dow_thread, val);</div><div class="line">				&#125;</div><div class="line">				break;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		_dispatch_thread_event_destroy(&amp;dow.dow_event);</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码很长，逐段分析：</p>
+<p>首先初始化了一系列的变量，<code>_dispatch_once_waiter_s</code>类似于链表中的节点</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">typedef struct _dispatch_once_waiter_s &#123;</div><div class="line">	volatile struct _dispatch_once_waiter_s *volatile dow_next; // 下一个节点</div><div class="line">	dispatch_thread_event_s dow_event; // 信号量</div><div class="line">	mach_port_t dow_thread; // 线程端口</div><div class="line">&#125; *_dispatch_once_waiter_t;</div></pre></td></tr></table></figure>
+<p><code>if (os_atomic_cmpxchg(vval, NULL, tail, acquire))</code>这行代码展开为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">if (*vval == NULL) &#123;</div><div class="line">	*vval = tail = &amp;dow;</div><div class="line">	return true;</div><div class="line">&#125; else &#123;</div><div class="line">	return false</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>意思是传入的<code>*vval == NULL</code>如果为nil，则赋值，并返回true，并且这个方法是原子操作的。当我们第一次进来，<code>val=0</code>接下来执行<code>if</code>里面的代码。</p>
+<p><code>_dispatch_client_callout</code>表示执行<code>block</code>，然后将next标记为<code>DISPATCH_ONCE_DONE</code>。</p>
+<p>假如整个过程只有一个线程，那么下面的while循环不会执行，执行到这里就结束了，。假如有其他线程进来，就会进入else分支里。</p>
+<p>else分支里，是一个死循环，先判断<code>if (next == DISPATCH_ONCE_DONE)</code>，如果是，直接跳出循环。每进来一次，都会生成一个<code>_dispatch_once_waiter_s</code>的节点，添加到链表的尾部，然后调用信号量等待。而链表的头部是第一次进来的，进入到if代码段的那个节点。当if分支执行完后，会进入while循环遍历链表，依次发送信号将线程唤醒。</p>
+<p>这就是全部的执行过程，用到的知识点主要是原子性操作、链表。由此可以看出大家都说<code>dispatch_once</code>只执行一次这种说话是不严谨的，它本质上可以执行多次，只是把每次执行请求放到了内部的链表里。<br>还是画个图吧。</p>
+<p><img src="http://ocauxqtbu.bkt.clouddn.com/dispatch_once%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8.png" alt=""></p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2018/07/10/iOS国际化/" itemprop="url">
                   iOS国际化
                 </a>
@@ -1705,219 +1859,11 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/08/06/crash分析/" itemprop="url">
-                  Crash分析
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-08-06T10:06:55+08:00" content="2017-08-06">
-              2017-08-06
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/分类/技术/" itemprop="url" rel="index">
-                    <span itemprop="name">技术</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2017/08/06/crash分析/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/06/crash分析/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2017/08/06/crash分析/" class="leancloud_visitors" data-flag-title="Crash分析">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h3 id="一、-Crash文件的获取"><a href="#一、-Crash文件的获取" class="headerlink" title="一、 Crash文件的获取"></a>一、 Crash文件的获取</h3><p>在开发的过程中，难免会遇到应用crash的发生，了解为何会发生crash，对我们以后写代码的稳定有非常大的作用。应用的每一次闪退，手机会自动的把这次闪退记录下来，以文件的形式保存到手机上。Crash文件的获取分两种情况，一种是在测试阶段，一种是线上APP。</p>
-<h4 id="测试阶段"><a href="#测试阶段" class="headerlink" title="测试阶段"></a>测试阶段</h4><p>在测试阶段，假如测试人员专业的话，应用奔溃时，会告诉你什么时候崩溃了，点击哪个按钮崩溃了。但是不专业的话，可能告诉你的信息就不那么全了。但是我们可以通过分析crash文件，来定位闪退的原因。通过打AdHoc包将APP安装到手机上，假如发生闪退了，可以把手机拿过来，通过iTunes连接，将crash信息同步到电脑上</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_tongbu.png" alt="image"></p>
-<p>点击同步后，电脑上这个文件夹下</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~/Library/Logs/CrashReporter/MobileDevice</div></pre></td></tr></table></figure>
-<p>就能找到对应设备的crash文件了</p>
-<h4 id="线上APP"><a href="#线上APP" class="headerlink" title="线上APP"></a>线上APP</h4><p>APP上线以后，crash文件的获取在Xcode - Windwo - Organizer - Crashes<br>这里面列出了每个APP版本的闪退信息，通过Show in Finder也能获取到crash文件。但注意的是，这个Xcode，必须是上传时用的Xcode。</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_list.png" alt="image"></p>
-<p>之前有人说，通过开发者中心，iTunes Connect，也能获取到，我去看了下，好像没有这个选项了。另外，假如苹果在审核的时候，发生闪退，被打了回来，审核团队也会提供一份crash文件，我们可以直接用来分析。</p>
-<h3 id="二、-Crash文件的分析"><a href="#二、-Crash文件的分析" class="headerlink" title="二、 Crash文件的分析"></a>二、 Crash文件的分析</h3><h4 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h4><p>文件分析需要四样东西，crash文件，symbolicatecrash分析工具，闪退APP的打包后的.APP文件，以及此包对应的.dSYM符号表文件。我们在桌面上新建一个文件夹，命名为crash文件分析，一样一样准备就行了。</p>
-<p>获取crash文件我们上面已经了解到了，symbolicatecrash分析工具是Xcode自带的，我们只需要拿来用就行，打开终端，输入以下命令</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">find /Applications/Xcode.app -name symbolicatecrash -type f</div></pre></td></tr></table></figure>
-<p>过几秒钟，symbolicatecrash分析工具的路径就会显示出来，我们进入这个路径中，将symbolicatecrash分析工具拷贝到桌面上刚才创建的crash文件分析的文件夹中</p>
-<p>.APP及.dSYM符号表文件的获取：</p>
-<p>在Organizer - Archives里显示的有打过的包，找到crash发生对应的那个版本包，然后 Show in Finder,显示包内容,.dSYM文件在dSYMs文件夹下，.APP文件在Products - Applications文件夹下。分别拷贝他们到桌面的crash文件分析的文件夹中</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_dsym.png" alt="image"></p>
-<h4 id="dSYM符号表是什么？"><a href="#dSYM符号表是什么？" class="headerlink" title=".dSYM符号表是什么？"></a>.dSYM符号表是什么？</h4><p>符号表就是指在Xcode项目编译后，在编译生成的二进制文件.app的同级目录下生成的同名的.dSYM文件。.dSYM文件其实是一个目录，在子目录中包含了一个16进制的保存函数地址映射信息的中转文件，所有Debug的symbols都在这个文件中(包括文件名、函数名、行号等)，所以也称之为调试符号信息文件。一般地，Xcode项目每次编译后，都会生成一个新的.dSYM文件。因此，App的每一个发布版本，都需要备份一个对应的.dSYM文件，以便后续调试定位问题。</p>
-<p>符号表有什么用<br>符号表的作用是把崩溃中的函数地址解析为函数名等信息。如果开发者能够获取到崩溃的函数地址信息，就可以利用符号表分析出具体的出错位置。<br> 在Xcode开发调试App时，一旦遇到崩溃问题，开发者可以直接使用Xcode的调试器定位分析。<br> 但如果App发布上线，开发者不可能进行调试，只能通过分析系统记录的崩溃日志来定位问题，在这份崩溃日志文件中，会指出App出错的函数内存地址，而这些函数地址是可以在.dSYM文件中找到具体的文件名、函数名和行号信息的，这正是符号表的重要作用所在，也是为什么要进行符号表进行管理，并纪录这是哪个版本的符号表。</p>
-<h4 id="开始分析"><a href="#开始分析" class="headerlink" title="开始分析"></a>开始分析</h4><p>打开终端，cd到刚才创建的文件夹下，输入命令</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./symbolicatecrash /Users/用户名/Desktop/crash文件/watchnail-2017-08-03-143201.crash /Users/用户名/Desktop/crash文件/watchnail.app.dSYM &gt; result.crash</div></pre></td></tr></table></figure>
-<p>这个时候可能会出现一个error</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Error: &quot;DEVELOPER_DIR&quot; is not defined at ./symbolicatecrash line 69.</div></pre></td></tr></table></figure>
-<p>不用怕，继续输入指令</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">export DEVELOPER_DIR=&quot;/Applications/XCode.app/Contents/Developer&quot;</div></pre></td></tr></table></figure>
-<p>然后再输入一遍刚开始的操作</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./symbolicatecrash /Users/用户名/Desktop/crash文件/watchnail-2017-08-03-143201.crash /Users/用户名/Desktop/crash文件/watchnail.app.dSYM &gt; result.crash</div></pre></td></tr></table></figure>
-<p>这个时候如果成功的话，文件夹下回多出一个文件，名字为result.crash文件</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_result.png" alt="image"></p>
-<p>而这个文件就是我们最终需要的文件，直接打开，里面列出了闪退时的各种信息：</p>
-<p><img src="http://ocauxqtbu.bkt.clouddn.com/crash_wenjian.png" alt="image"></p>
-<p><code>Incident Identifier</code>：崩溃报告的唯一标识符，不同的Crash日志该标示符也不同。</p>
-<p><code>CrashReporter Key</code>：设备标识相对应的唯一键值(并非真正的设备的UDID，苹果为了保护用户隐私iOS6以后已经无法获取)。通常同一个设备上同一版本的App发生Crash时，该值都是一样的。</p>
-<p><code>Hardware Model</code> ：代表发生Crash的设备类型。</p>
-<p><code>Process</code>：代表系统Crash的进程名称，通常都是我们的App的名字, [ ]里面是当时进程的ID。</p>
-<p><code>Path</code>：App的所在路径。</p>
-<p><code>Identifier</code>：我们App的Indentifier，通常为“com.xxx.yyy”，xxx代表公司的域名，yyy代表某一个App标识。</p>
-<p><code>AppVersion</code>：当前App的版本号，由Info.plist中的两个字段组成，CFBundleShortVersionString and CFBundleVersion。</p>
-<p><code>Code Type</code>：当前App的CPU架构。<br><code>Role</code>:表示crash时，程序在前台运行还是在后台<br><code>Parent Process</code>：当前进程的父进程，由于iOS中App通常都是单进程的，一般父进程都是launchd。</p>
-<p><code>Date/Time</code>：发生crash的时间</p>
-<p><code>Launch Time</code>：启动App的时间</p>
-<p><code>OS Version</code>：iOS系统固件版本</p>
-<p><code>Report Version</code>：日志版本</p>
-<p><code>Exception Type</code>： 异常的类型<br>常见的Exception Type异常类型的信息</p>
-<p>EXC_BAD_ACCESS：此类型是最常见的crash, 通常用于访问了不该访问的内存导致的，野指针错误形式在Xcode中通常表现就为这个</p>
-<p>SIGSEGV:通常由于重复释放对象导致, 一般在ARC以后很少见到</p>
-<p>SIGABRT: 收到Abort信号退出,</p>
-<p>SEGV(Segmentation Violation): 代表无效内存地址, 比如空指针, 未初始化指针, 栈溢出等.</p>
-<p>SIGBUS:总栈错误, 与SIGSEGV不同的是, SIGSEGV访问的是无效的地址, 而SIGBUS访问的是有效的地址, 但是总栈访问异常(如地址对齐问题)</p>
-<p><code>Exception Codes</code>:  异常出错的代码</p>
-<p><code>Exception Note</code>:  异常通知</p>
-<p><code>Triggered by Thread</code>： 问题发生的thread</p>
-<p><code>Last Exception Backtrace</code>:     最后异常回溯，一般根据这个代码就能找到crash的具体问题</p>
-<p>下面来看下我这个crash文件，没有处理前的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">Last Exception Backtrace:</div><div class="line">(0x18bdaafd8 0x18a80c538 0x18bdb1ef4 0x18bdaef4c 0x18bcaad2c </div><div class="line">0x18c887bfc 0x18bd59a9c 0x18bd597a0 0x18bd59060 0x18bd56c84 0x18bc86d94 0x18d6f0074 0x191f38130 0x1001a34d8 0x18ac9559c)</div><div class="line"></div><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   libsystem_kernel.dylib        	0x000000018ada5014 0x18ad86000 + 126996</div><div class="line">1   libsystem_pthread.dylib       	0x000000018ae6f334 0x18ae6a000 + 21300</div><div class="line">2   libsystem_c.dylib             	0x000000018ad199c4 0x18acb8000 + 399812</div><div class="line">3   libc++abi.dylib               	0x000000018a7e51b0 0x18a7e4000 + 4528</div><div class="line">4   libc++abi.dylib               	0x000000018a7fb5f0 0x18a7e4000 + 95728</div><div class="line">5   libc++abi.dylib               	0x000000018a7fb1a8 0x18a7e4000 + 94632</div><div class="line">6   libobjc.A.dylib               	0x000000018a80c6f8 0x18a804000 + 34552</div><div class="line">7   CoreFoundation                	0x000000018bc86e00 0x18bc7e000 + 36352</div><div class="line">8   GraphicsServices              	0x000000018d6f0074 0x18d6e4000 + 49268</div><div class="line">9   UIKit                         	0x0000000191f38130 0x191ec3000 + 479536</div><div class="line">10  watchnail                     	0x00000001001a34d8 0x100060000 + 1324248</div><div class="line">11  libdyld.dylib                 	0x000000018ac9559c 0x18ac91000 + 17820</div></pre></td></tr></table></figure>
-<p>处理后的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line">Last Exception Backtrace:</div><div class="line">0   CoreFoundation                	0x18bdaafd8 __exceptionPreprocess + 124</div><div class="line">1   libobjc.A.dylib               	0x18a80c538 objc_exception_throw + 56</div><div class="line">2   CoreFoundation                	0x18bdb1ef4 -[NSObject(NSObject) doesNotRecognizeSelector:] + 140</div><div class="line">3   CoreFoundation                	0x18bdaef4c ___forwarding___ + 916</div><div class="line">4   CoreFoundation                	0x18bcaad2c _CF_forwarding_prep_0 + 92</div><div class="line">5   Foundation                    	0x18c887bfc __NSFireDelayedPerform + 408</div><div class="line">6   CoreFoundation                	0x18bd59a9c __CFRUNLOOP_IS_CALLING_OUT_TO_A_TIMER_CALLBACK_FUNCTION__ + 28</div><div class="line">7   CoreFoundation                	0x18bd597a0 __CFRunLoopDoTimer + 856</div><div class="line">8   CoreFoundation                	0x18bd59060 __CFRunLoopDoTimers + 244</div><div class="line">9   CoreFoundation                	0x18bd56c84 __CFRunLoopRun + 1484</div><div class="line">10  CoreFoundation                	0x18bc86d94 CFRunLoopRunSpecific + 424</div><div class="line">11  GraphicsServices              	0x18d6f0074 GSEventRunModal + 100</div><div class="line">12  UIKit                         	0x191f38130 UIApplicationMain + 208</div><div class="line">13  watchnail                     	0x1001a34d8 main (main.m:14)</div><div class="line">14  libdyld.dylib                 	0x18ac9559c start + 4</div><div class="line"></div><div class="line"></div><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   libsystem_kernel.dylib        	0x000000018ada5014 __pthread_kill + 8</div><div class="line">1   libsystem_pthread.dylib       	0x000000018ae6f334 pthread_kill + 112</div><div class="line">2   libsystem_c.dylib             	0x000000018ad199c4 abort + 140</div><div class="line">3   libc++abi.dylib               	0x000000018a7e51b0 __cxa_bad_cast + 0</div><div class="line">4   libc++abi.dylib               	0x000000018a7fb5f0 std::__terminate(void (*)()) + 44</div><div class="line">5   libc++abi.dylib               	0x000000018a7fb1a8 __cxa_rethrow + 144</div><div class="line">6   libobjc.A.dylib               	0x000000018a80c6f8 objc_exception_rethrow + 44</div><div class="line">7   CoreFoundation                	0x000000018bc86e00 CFRunLoopRunSpecific + 532</div><div class="line">8   GraphicsServices              	0x000000018d6f0074 GSEventRunModal + 100</div><div class="line">9   UIKit                         	0x0000000191f38130 UIApplicationMain + 208</div><div class="line">10  watchnail                     	0x00000001001a34d8 main (main.m:14)</div><div class="line">11  libdyld.dylib</div></pre></td></tr></table></figure>
-<p>可以看出，原来的函数地址，都被还原成了函数名。我们通过<code>Triggered by Thread</code>得到问题发生的线程，再去找相应的线程模块，就可以找到问题所在了。</p>
-<p>我这个测试demo中，crash发生在主线程，崩溃原因为</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[NSObject(NSObject) doesNotRecognizeSelector:]</div></pre></td></tr></table></figure>
-<p>意思是没有实现相应的方法。但是美中不足的是，只提示了是什么原因导致的crash，并没有提示是哪个类不识别这个方法，难道需要其他的方法，来定位crash时所在的类？</p>
-<p>现在也有很多的第三方服务来专门收集crash，如友盟，Bugly等等，不只是crash，还有对卡顿，性能的检测等等。</p>
-<h3 id="三、-常见的crash类型"><a href="#三、-常见的crash类型" class="headerlink" title="三、 常见的crash类型"></a>三、 常见的crash类型</h3><h4 id="unrecognized-selector-crash"><a href="#unrecognized-selector-crash" class="headerlink" title="unrecognized selector crash"></a>unrecognized selector crash</h4><p>这个原因通常是一个对象调用了一个不属于它方法的方法导致的。</p>
-<p>预防：使用Runtime的消息转发来实现</p>
-<ol>
-<li>动态创建一个桩类</li>
-<li>动态为桩类添加对应的Selector，用一个通用的返回0的函数来实现该SEL的IMP</li>
-<li>将消息直接转发到这个桩类对象上。</li>
-</ol>
-<h4 id="KVO-crash"><a href="#KVO-crash" class="headerlink" title="KVO crash"></a>KVO crash</h4><ol>
-<li>KVO的被观察者dealloc时仍然注册着KVO导致的crash</li>
-<li>添加KVO重复添加观察者或重复移除观察者（KVO注册观察者与移除观察者不匹配）导致的crash</li>
-</ol>
-<p>预防：被观察对象持有一个KVO的delegate，所有和KVO相关的操作均通过delegate来进行管理，delegate通过建立一张map来维护KVO整个关系。</p>
-<p>这里极力推荐一个facebook开源的关于管理KVO的开源库<a href="https://github.com/facebook/KVOController" target="_blank" rel="external">KVOController</a></p>
-<h4 id="NSNotification-crash"><a href="#NSNotification-crash" class="headerlink" title="NSNotification crash"></a>NSNotification crash</h4><p>当一个对象添加了notification之后，如果dealloc的时候，仍然持有notification，就会出现NSNotification类型的crash。<br>所幸的是，苹果在iOS9之后专门针对于这种情况做了处理，所以在iOS9之后，即使开发者没有移除observer，Notification crash也不会再产生了。<br>不过针对于iOS9之前的用户，我们还是有必要做一下NSNotification Crash的防护的。</p>
-<h4 id="NSTimer-crash"><a href="#NSTimer-crash" class="headerlink" title="NSTimer crash"></a>NSTimer crash</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:</div></pre></td></tr></table></figure>
-<p>使用这个方法时，NSTimer会强引用target实例，所以需要在合适的时机invalidate定时器，否则就会由于定时器timer强引用target的关系导致target不能被释放，造成内存泄露，甚至在定时任务触发时导致crash。</p>
-<h4 id="Container-crash"><a href="#Container-crash" class="headerlink" title="Container crash"></a>Container crash</h4><p>Container 类型的crash 指的是容器类的crash，常见的有NSArray／NSMutableArray／NSDictionary／NSMutableDictionary／NSCache的crash。 一些常见的越界、插入nil等错误操作均会导致此类crash发生</p>
-<h4 id="野指针crash"><a href="#野指针crash" class="headerlink" title="野指针crash"></a>野指针crash</h4><p>在App的所有Crash中，访问野指针导致的Crash占了很大一部分</p>
-<h4 id="非主线程刷UI类型crash"><a href="#非主线程刷UI类型crash" class="headerlink" title="非主线程刷UI类型crash"></a>非主线程刷UI类型crash</h4><p>非主线程刷UI将会导致app运行crash，所以一定要在主线程中进行UI操作</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1958,7 +1904,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">30</span>
+              <span class="site-state-item-count">31</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
